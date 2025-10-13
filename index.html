@@ -810,7 +810,11 @@
                         </button>
                         <button class="buy-btn" onclick="event.stopPropagation(); buyStock(${stock.id}, 10)"
                                 ${!gameState.isMarketOpen || stock.delisted ? 'disabled' : ''}>
-                            10주 매수
+                            10주
+                        </button>
+                        <button class="buy-btn" onclick="event.stopPropagation(); buyStock(${stock.id}, 100)"
+                                ${!gameState.isMarketOpen || stock.delisted ? 'disabled' : ''}>
+                            100주
                         </button>
                         <button class="sell-btn" onclick="event.stopPropagation(); sellStock(${stock.id})"
                                 ${!gameState.isMarketOpen || stock.delisted || !gameState.holdings[stock.id] ? 'disabled' : ''}>
@@ -958,6 +962,7 @@
                             div.className = 'holding-item';
                             const value = stock.price * holding.quantity;
                             const profitLoss = (stock.price - holding.avgPrice) * holding.quantity;
+                            const profitPercent = ((stock.price - holding.avgPrice) / holding.avgPrice) * 100;
                             const profitColor = profitLoss >= 0 ? '#28a745' : '#dc3545';
                             const profitSign = profitLoss >= 0 ? '+' : '';
                             div.innerHTML = `
@@ -967,7 +972,9 @@
                                 </div>
                                 <div style="text-align: right;">
                                     <div style="font-weight: bold; color: #28a745;">$${value.toFixed(2)}</div>
-                                    <div style="font-size: 0.85em; color: ${profitColor};">${profitSign}$${profitLoss.toFixed(2)}</div>
+                                    <div style="font-size: 0.85em; color: ${profitColor};">
+                                        ${profitSign}$${profitLoss.toFixed(2)} (${profitSign}${profitPercent.toFixed(2)}%)
+                                    </div>
                                 </div>
                             `;
                             holdingsContainer.appendChild(div);
