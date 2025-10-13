@@ -15,7 +15,20 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            height: 100vh;
+            padding: 5px;
+            overflow: hidden;
+            font-size: var(--base-font-size, 16px);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 3px;
+            }
+        }
+
+        :root {
+            --base-font-size: 16px;
         }
 
         .container {
@@ -24,43 +37,84 @@
             background: white;
             border-radius: 15px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            padding: 30px;
+            padding: 20px;
+            height: calc(100vh - 20px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                border-radius: 10px;
+            }
         }
 
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 20px;
-            font-size: 2.5em;
+            margin-bottom: 15px;
+            font-size: 2em;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 10px;
+            }
         }
 
         .header-info {
             display: flex;
             justify-content: space-around;
             background: #f8f9fa;
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .header-info {
+                padding: 10px;
+                gap: 8px;
+            }
         }
 
         .info-box {
             text-align: center;
             flex: 1;
-            min-width: 150px;
+            min-width: 120px;
         }
 
         .info-box h3 {
-            font-size: 0.9em;
+            font-size: 0.8em;
             color: #666;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
         .info-box p {
-            font-size: 1.5em;
+            font-size: 1.2em;
             font-weight: bold;
             color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .info-box {
+                min-width: 90px;
+            }
+
+            .info-box h3 {
+                font-size: 0.7em;
+            }
+
+            .info-box p {
+                font-size: 1em;
+            }
         }
 
         .market-open {
@@ -74,52 +128,97 @@
         .content-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+            gap: 15px;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .content-grid {
                 grid-template-columns: 1fr;
+                gap: 10px;
             }
         }
 
         .stocks-section, .player-section {
             background: #f8f9fa;
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .stocks-section, .player-section {
+                padding: 12px;
+            }
         }
 
         .section-title {
-            font-size: 1.5em;
-            margin-bottom: 15px;
+            font-size: 1.3em;
+            margin-bottom: 10px;
             color: #333;
             border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .section-title {
+                font-size: 1.1em;
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+                border-bottom-width: 2px;
+            }
         }
 
         .stock-list {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            max-height: 500px;
+            gap: 10px;
             overflow-y: auto;
+            flex: 1;
+            padding-right: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .stock-list {
+                gap: 8px;
+            }
         }
 
         .stock-item {
             background: white;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
             transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .stock-item {
+                padding: 10px;
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
+            }
         }
 
         .stock-item:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        @media (hover: none) {
+            .stock-item:hover {
+                transform: none;
+            }
         }
 
         .stock-item.delisted {
@@ -133,15 +232,25 @@
 
         .stock-name {
             font-weight: bold;
-            font-size: 1.1em;
+            font-size: 1em;
             color: #333;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
 
         .stock-price {
-            font-size: 1.3em;
+            font-size: 1.1em;
             color: #28a745;
             font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .stock-name {
+                font-size: 0.9em;
+            }
+
+            .stock-price {
+                font-size: 1em;
+            }
         }
 
         .stock-price.negative {
@@ -150,22 +259,40 @@
 
         .stock-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            .stock-actions {
+                gap: 5px;
+            }
         }
 
         button {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.95em;
+            font-size: 0.85em;
             transition: all 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            button {
+                padding: 6px 12px;
+                font-size: 0.75em;
+            }
         }
 
         button:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         button:disabled {
@@ -195,46 +322,131 @@
             background: #ffc107;
             color: #333;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 8px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .loan-btn {
+                margin-top: 5px;
+            }
         }
 
         .loan-btn:hover:not(:disabled) {
             background: #e0a800;
         }
 
+        .repay-btn {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .repay-btn:hover:not(:disabled) {
+            background: #138496;
+        }
+
         .player-info {
             background: white;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
         }
 
         .player-info h4 {
             color: #666;
-            font-size: 0.95em;
-            margin-bottom: 8px;
+            font-size: 0.85em;
+            margin-bottom: 5px;
         }
 
         .player-info p {
-            font-size: 1.3em;
+            font-size: 1.1em;
             font-weight: bold;
             color: #333;
         }
 
+        @media (max-width: 768px) {
+            .player-info {
+                padding: 10px;
+                margin-bottom: 8px;
+            }
+
+            .player-info h4 {
+                font-size: 0.75em;
+                margin-bottom: 4px;
+            }
+
+            .player-info p {
+                font-size: 1em;
+            }
+        }
+
         .holdings-list {
             background: white;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
-            margin-top: 15px;
+            margin-top: 10px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .holdings-list h4 {
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 0.85em;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .holdings-list {
+                padding: 10px;
+                margin-top: 8px;
+            }
+
+            .holdings-list h4 {
+                font-size: 0.75em;
+                margin-bottom: 6px;
+            }
+        }
+
+        #holdings-container {
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
         }
 
         .holding-item {
-            padding: 10px;
+            padding: 8px;
             background: #f8f9fa;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             border-radius: 5px;
             display: flex;
             justify-content: space-between;
+            flex-shrink: 0;
+            font-size: 0.9em;
+        }
+
+        .empty-holdings {
+            color: #999;
+            text-align: center;
+            font-size: 0.85em;
+            padding: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .holding-item {
+                padding: 6px;
+                margin-bottom: 5px;
+                font-size: 0.85em;
+            }
+
+            .empty-holdings {
+                font-size: 0.75em;
+                padding: 8px;
+            }
         }
 
         .game-over {
@@ -382,6 +594,57 @@
             transition: all 0.3s;
         }
 
+        @media (max-width: 768px) {
+            .dark-mode-toggle {
+                top: 10px;
+                right: 10px;
+                padding: 8px 15px;
+                font-size: 1em;
+            }
+        }
+
+        /* 폰트 크기 조절 버튼 */
+        .font-size-controls {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            display: flex;
+            gap: 5px;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .font-size-controls {
+                top: 50px;
+                right: 10px;
+            }
+        }
+
+        .font-size-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .font-size-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .font-size-btn {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+        }
+
         .dark-mode-toggle:hover {
             background: #555;
             transform: translateY(-2px);
@@ -500,10 +763,22 @@
         .dark-mode-toggle.dark-mode:hover {
             background: #e0e0e0;
         }
+
+        body.dark-mode .font-size-btn {
+            background: #667eea;
+        }
+
+        body.dark-mode .font-size-btn:hover {
+            background: #5568d3;
+        }
     </style>
 </head>
 <body>
     <button class="dark-mode-toggle" id="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+
+    <div class="font-size-controls">
+        <button class="font-size-btn" id="font-size-btn" onclick="cycleFontSize()" title="폰트 크기 변경">A</button>
+    </div>
 
     <div class="container">
         <h1>📈 주식 시뮬레이션 게임</h1>
@@ -555,14 +830,14 @@
                 </div>
 
                 <div class="holdings-list">
-                    <h4 style="margin-bottom: 10px; color: #666;">📦 보유 주식</h4>
+                    <h4>📦 보유 주식</h4>
                     <div id="holdings-container">
-                        <p style="color: #999; text-align: center;">보유 중인 주식이 없습니다</p>
+                        <p class="empty-holdings">보유 중인 주식이 없습니다</p>
                     </div>
                 </div>
 
                 <button class="loan-btn" onclick="takeLoan()">💳 대출 받기 ($10000)</button>
-                <button class="loan-btn" onclick="repayLoan()" style="background: #17a2b8; color: white; margin-top: 10px;">💰 대출 갚기 ($10000)</button>
+                <button class="loan-btn repay-btn" onclick="repayLoan()">💰 대출 갚기 ($10000)</button>
             </div>
         </div>
     </div>
@@ -610,6 +885,50 @@
             setInterval(updateTime, 1000);
             createInitialStock();
             loadDarkMode();
+            loadFontSize();
+        }
+
+        // 폰트 크기 조절
+        const fontSizes = [12, 14, 16, 18, 20];
+        let currentFontSizeIndex = 2; // 기본값 16px
+
+        function cycleFontSize() {
+            currentFontSizeIndex = (currentFontSizeIndex + 1) % fontSizes.length;
+            applyFontSize();
+            updateFontSizeButton();
+        }
+
+        function applyFontSize() {
+            const fontSize = fontSizes[currentFontSizeIndex];
+            document.documentElement.style.setProperty('--base-font-size', fontSize + 'px');
+            localStorage.setItem('fontSizeIndex', currentFontSizeIndex);
+        }
+
+        function updateFontSizeButton() {
+            const btn = document.getElementById('font-size-btn');
+            const fontSize = fontSizes[currentFontSizeIndex];
+
+            // 버튼 텍스트를 크기에 맞게 변경
+            if (fontSize === 12) {
+                btn.textContent = 'A-';
+            } else if (fontSize === 14) {
+                btn.textContent = 'A';
+            } else if (fontSize === 16) {
+                btn.textContent = 'A';
+            } else if (fontSize === 18) {
+                btn.textContent = 'A+';
+            } else if (fontSize === 20) {
+                btn.textContent = 'A++';
+            }
+        }
+
+        function loadFontSize() {
+            const savedIndex = localStorage.getItem('fontSizeIndex');
+            if (savedIndex !== null) {
+                currentFontSizeIndex = parseInt(savedIndex);
+                applyFontSize();
+                updateFontSizeButton();
+            }
         }
 
         // 다크 모드 토글
@@ -956,7 +1275,7 @@
             // 보유 주식 표시
             const holdingsContainer = document.getElementById('holdings-container');
             if (Object.keys(gameState.holdings).length === 0) {
-                holdingsContainer.innerHTML = '<p style="color: #999; text-align: center;">보유 중인 주식이 없습니다</p>';
+                holdingsContainer.innerHTML = '<p class="empty-holdings">보유 중인 주식이 없습니다</p>';
             } else {
                 holdingsContainer.innerHTML = '';
                 Object.entries(gameState.holdings).forEach(([stockId, holding]) => {
