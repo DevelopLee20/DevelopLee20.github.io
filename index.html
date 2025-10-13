@@ -1,1 +1,991 @@
-"<h1>Hello, GitHub Pages!</h1>" 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주식 시뮬레이션 게임</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-box {
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .info-box h3 {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .info-box p {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .market-open {
+            color: #28a745 !important;
+        }
+
+        .market-closed {
+            color: #dc3545 !important;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stocks-section, .player-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .stock-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .stock-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .stock-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stock-item.delisted {
+            opacity: 0.5;
+            background: #f5f5f5;
+        }
+
+        .stock-info {
+            flex: 1;
+        }
+
+        .stock-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stock-price {
+            font-size: 1.3em;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .stock-price.negative {
+            color: #dc3545;
+        }
+
+        .stock-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .buy-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .buy-btn:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .sell-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .sell-btn:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .loan-btn {
+            background: #ffc107;
+            color: #333;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .loan-btn:hover:not(:disabled) {
+            background: #e0a800;
+        }
+
+        .player-info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .player-info h4 {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+        }
+
+        .player-info p {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .holdings-list {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .holding-item {
+            padding: 10px;
+            background: #f8f9fa;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .game-over-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .game-over-content h2 {
+            color: #dc3545;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .game-over-content p {
+            font-size: 1.3em;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .restart-btn {
+            background: #667eea;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2em;
+        }
+
+        .restart-btn:hover {
+            background: #5568d3;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .price-change {
+            font-size: 0.9em;
+            margin-left: 8px;
+        }
+
+        .price-up {
+            color: #28a745;
+        }
+
+        .price-down {
+            color: #dc3545;
+        }
+
+        .chart-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .chart-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .chart-close {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .chart-close:hover {
+            background: #c82333;
+        }
+
+        #price-chart {
+            width: 100%;
+            height: 400px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .stock-info-clickable {
+            cursor: pointer;
+        }
+
+        .stock-info-clickable:hover {
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📈 주식 시뮬레이션 게임</h1>
+
+        <div class="header-info">
+            <div class="info-box">
+                <h3>현재 시간</h3>
+                <p id="current-time">--:--:--</p>
+            </div>
+            <div class="info-box">
+                <h3>시장 상태</h3>
+                <p id="market-status" class="market-closed">휴장 중</p>
+            </div>
+            <div class="info-box">
+                <h3>이자 납부까지</h3>
+                <p id="interest-timer">--:--</p>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="stocks-section">
+                <h2 class="section-title">📊 주식 시장</h2>
+                <div id="stock-list" class="stock-list">
+                    <!-- 주식 목록이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+
+            <div class="player-section">
+                <h2 class="section-title">💰 내 정보</h2>
+
+                <div class="player-info">
+                    <h4>💵 현금</h4>
+                    <p id="player-cash">$10000</p>
+                </div>
+
+                <div class="player-info">
+                    <h4>🏦 대출 잔액</h4>
+                    <p id="player-loan">$0</p>
+                </div>
+
+                <div class="player-info">
+                    <h4>💳 내야할 이자</h4>
+                    <p id="player-interest">$0</p>
+                </div>
+
+                <div class="player-info">
+                    <h4>📈 총 자산</h4>
+                    <p id="player-total">$10000</p>
+                </div>
+
+                <div class="holdings-list">
+                    <h4 style="margin-bottom: 10px; color: #666;">📦 보유 주식</h4>
+                    <div id="holdings-container">
+                        <p style="color: #999; text-align: center;">보유 중인 주식이 없습니다</p>
+                    </div>
+                </div>
+
+                <button class="loan-btn" onclick="takeLoan()">💳 대출 받기 ($10000)</button>
+                <button class="loan-btn" onclick="repayLoan()" style="background: #17a2b8; color: white; margin-top: 10px;">💰 대출 갚기 ($10000)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-over" class="game-over hidden">
+        <div class="game-over-content">
+            <h2>💸 파산!</h2>
+            <p id="game-over-message">자산이 0 이하가 되었습니다.</p>
+            <button class="restart-btn" onclick="restartGame()">🔄 다시 시작</button>
+        </div>
+    </div>
+
+    <div id="chart-modal" class="chart-modal hidden" onclick="closeChart()">
+        <div class="chart-content" onclick="event.stopPropagation()">
+            <div class="chart-header">
+                <h2 class="chart-title" id="chart-stock-name">차트</h2>
+                <button class="chart-close" onclick="closeChart()">✕ 닫기</button>
+            </div>
+            <canvas id="price-chart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // 게임 상태
+        let gameState = {
+            cash: 10000,
+            loan: 0,
+            holdings: {}, // {stockId: {quantity, avgPrice}}
+            isMarketOpen: false,
+            gameOver: false
+        };
+
+        // 주식 데이터
+        let stocks = [];
+        let stockIdCounter = 0;
+
+        // 타이머
+        let priceUpdateInterval = null;
+        let lastStockCreationMinute = -1;
+        let lastInterestMinute = -1;
+
+        // 초기화
+        function init() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            createInitialStock();
+        }
+
+        // 시간 업데이트 및 게임 로직
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            document.getElementById('current-time').textContent = `${hours}:${minutes}:${seconds}`;
+
+            // 장 상태 체크
+            checkMarketStatus(minutes);
+
+            // 새 주식 생성 체크 (15분 간격: 00, 15, 30, 45)
+            if (minutes % 15 === 0 && minutes !== lastStockCreationMinute) {
+                createNewStock();
+                lastStockCreationMinute = minutes;
+            }
+
+            // 이자 납부 체크 (10분 간격)
+            if (minutes % 10 === 0 && minutes !== lastInterestMinute) {
+                chargeInterest();
+                lastInterestMinute = minutes;
+            }
+
+            // 이자 납부 타이머 표시
+            const minutesUntilInterest = 10 - (minutes % 10);
+            const secondsUntilInterest = 60 - seconds;
+            const displayMinutes = secondsUntilInterest === 60 ? minutesUntilInterest : minutesUntilInterest - 1;
+            const displaySeconds = secondsUntilInterest === 60 ? 0 : secondsUntilInterest;
+            document.getElementById('interest-timer').textContent =
+                `${String(displayMinutes).padStart(2, '0')}:${String(displaySeconds).padStart(2, '0')}`;
+
+            // 자산 업데이트
+            updatePlayerInfo();
+        }
+
+        // 장 상태 체크
+        function checkMarketStatus(minutes) {
+            const minute = parseInt(minutes);
+            const shouldBeOpen = (minute >= 1 && minute <= 8) ||
+                                 (minute >= 11 && minute <= 18) ||
+                                 (minute >= 21 && minute <= 28) ||
+                                 (minute >= 31 && minute <= 38) ||
+                                 (minute >= 41 && minute <= 48) ||
+                                 (minute >= 51 && minute <= 58);
+
+            if (shouldBeOpen && !gameState.isMarketOpen) {
+                openMarket();
+            } else if (!shouldBeOpen && gameState.isMarketOpen) {
+                closeMarket();
+            }
+        }
+
+        // 장 개장
+        function openMarket() {
+            gameState.isMarketOpen = true;
+            const statusElement = document.getElementById('market-status');
+            statusElement.textContent = '시장 개장 중';
+            statusElement.className = 'market-open';
+
+            // 2초마다 주가 변동
+            if (priceUpdateInterval) clearInterval(priceUpdateInterval);
+            priceUpdateInterval = setInterval(updateStockPrices, 2000);
+        }
+
+        // 장 휴장
+        function closeMarket() {
+            gameState.isMarketOpen = false;
+            const statusElement = document.getElementById('market-status');
+            statusElement.textContent = '휴장 중';
+            statusElement.className = 'market-closed';
+
+            if (priceUpdateInterval) {
+                clearInterval(priceUpdateInterval);
+                priceUpdateInterval = null;
+            }
+        }
+
+        // 초기 주식 생성
+        function createInitialStock() {
+            createNewStock();
+            createNewStock();
+            createNewStock();
+        }
+
+        // 새 주식 생성
+        function createNewStock() {
+            const stockNames = ['엔사', '순천향대병원', '순양그룹', '사성', '럭키은성',
+                              'EA 스퍼트', 'F1 레이', '클로나이 AI', '개구리다 푸드', '페이커 건설'];
+            const usedNames = stocks.map(s => s.name);
+            const availableNames = stockNames.filter(name => !usedNames.includes(name));
+
+            if (availableNames.length === 0) return;
+
+            const stock = {
+                id: stockIdCounter++,
+                name: availableNames[Math.floor(Math.random() * availableNames.length)],
+                price: Math.floor(Math.random() * 50) + 10, // 10~60
+                prevPrice: 0,
+                delisted: false,
+                priceHistory: [] // 가격 변동 이력
+            };
+            stock.prevPrice = stock.price;
+            stock.priceHistory.push({time: Date.now(), price: stock.price});
+
+            stocks.push(stock);
+            renderStocks();
+        }
+
+        // 주가 변동
+        function updateStockPrices() {
+            if (!gameState.isMarketOpen) return;
+
+            stocks.forEach(stock => {
+                if (stock.delisted) return;
+
+                stock.prevPrice = stock.price;
+                // 현재 가격의 ±5% 변동
+                const changePercent = (Math.random() - 0.5) * 0.1; // -5% ~ +5%
+                const change = stock.price * changePercent;
+                stock.price = Math.max(0, stock.price + change);
+
+                // 가격 이력 추가 (최대 100개 유지)
+                stock.priceHistory.push({time: Date.now(), price: stock.price});
+                if (stock.priceHistory.length > 100) {
+                    stock.priceHistory.shift();
+                }
+
+                // 상장폐지 체크
+                if (stock.price <= 0) {
+                    stock.delisted = true;
+                    stock.price = 0;
+                }
+            });
+
+            renderStocks();
+            updatePlayerInfo();
+        }
+
+        // 주식 목록 렌더링
+        function renderStocks() {
+            const container = document.getElementById('stock-list');
+            container.innerHTML = '';
+
+            stocks.forEach(stock => {
+                const div = document.createElement('div');
+                div.className = 'stock-item' + (stock.delisted ? ' delisted' : '');
+
+                const priceChange = stock.price - stock.prevPrice;
+                const changeClass = priceChange > 0 ? 'price-up' : priceChange < 0 ? 'price-down' : '';
+                const changeSymbol = priceChange > 0 ? '▲' : priceChange < 0 ? '▼' : '';
+
+                div.innerHTML = `
+                    <div class="stock-info stock-info-clickable" onclick="showChart(${stock.id})">
+                        <div class="stock-name">${stock.name} ${stock.delisted ? '(상장폐지)' : ''}</div>
+                        <div class="stock-price ${stock.price < stock.prevPrice ? 'negative' : ''}">
+                            $${stock.price.toFixed(2)}
+                            ${changeSymbol ? `<span class="price-change ${changeClass}">${changeSymbol} $${Math.abs(priceChange).toFixed(2)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="stock-actions">
+                        <button class="buy-btn" onclick="event.stopPropagation(); buyStock(${stock.id})"
+                                ${!gameState.isMarketOpen || stock.delisted ? 'disabled' : ''}>
+                            매수
+                        </button>
+                        <button class="buy-btn" onclick="event.stopPropagation(); buyStock(${stock.id}, 10)"
+                                ${!gameState.isMarketOpen || stock.delisted ? 'disabled' : ''}>
+                            10주 매수
+                        </button>
+                        <button class="sell-btn" onclick="event.stopPropagation(); sellStock(${stock.id})"
+                                ${!gameState.isMarketOpen || stock.delisted || !gameState.holdings[stock.id] ? 'disabled' : ''}>
+                            매도
+                        </button>
+                        <button class="sell-btn" onclick="event.stopPropagation(); sellAllStock(${stock.id})"
+                                ${!gameState.isMarketOpen || stock.delisted || !gameState.holdings[stock.id] ? 'disabled' : ''}>
+                            전부 매도
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(div);
+            });
+        }
+
+        // 주식 매수
+        function buyStock(stockId, quantity = 1) {
+            if (!gameState.isMarketOpen || gameState.gameOver) return;
+
+            const stock = stocks.find(s => s.id === stockId);
+            if (!stock || stock.delisted) return;
+
+            const totalCost = stock.price * quantity;
+
+            if (gameState.cash >= totalCost) {
+                gameState.cash -= totalCost;
+
+                // 평균 단가 계산
+                if (!gameState.holdings[stockId]) {
+                    gameState.holdings[stockId] = { quantity: 0, avgPrice: 0 };
+                }
+                const holding = gameState.holdings[stockId];
+                const totalPrevCost = holding.avgPrice * holding.quantity;
+                holding.quantity += quantity;
+                holding.avgPrice = (totalPrevCost + totalCost) / holding.quantity;
+
+                updatePlayerInfo();
+                renderStocks();
+            } else {
+                alert('현금이 부족합니다!');
+            }
+        }
+
+        // 주식 매도
+        function sellStock(stockId) {
+            if (!gameState.isMarketOpen || gameState.gameOver) return;
+
+            const stock = stocks.find(s => s.id === stockId);
+            if (!stock || stock.delisted) return;
+
+            if (gameState.holdings[stockId] && gameState.holdings[stockId].quantity > 0) {
+                gameState.cash += stock.price;
+                gameState.holdings[stockId].quantity--;
+                if (gameState.holdings[stockId].quantity === 0) {
+                    delete gameState.holdings[stockId];
+                }
+                updatePlayerInfo();
+                renderStocks();
+            }
+        }
+
+        // 특정 주식 전부 매도
+        function sellAllStock(stockId) {
+            if (!gameState.isMarketOpen || gameState.gameOver) return;
+
+            const stock = stocks.find(s => s.id === stockId);
+            if (!stock || stock.delisted) return;
+
+            if (gameState.holdings[stockId] && gameState.holdings[stockId].quantity > 0) {
+                const quantity = gameState.holdings[stockId].quantity;
+                const revenue = stock.price * quantity;
+                gameState.cash += revenue;
+                delete gameState.holdings[stockId];
+                updatePlayerInfo();
+                renderStocks();
+            }
+        }
+
+        // 대출
+        function takeLoan() {
+            if (gameState.gameOver) return;
+
+            gameState.cash += 10000;
+            gameState.loan += 10000;
+            updatePlayerInfo();
+        }
+
+        // 대출 갚기
+        function repayLoan() {
+            if (gameState.gameOver) return;
+
+            const repayAmount = Math.min(10000, gameState.loan, gameState.cash);
+
+            if (repayAmount <= 0) {
+                if (gameState.loan <= 0) {
+                    alert('갚을 대출이 없습니다!');
+                } else {
+                    alert('현금이 부족합니다!');
+                }
+                return;
+            }
+
+            gameState.cash -= repayAmount;
+            gameState.loan -= repayAmount;
+            updatePlayerInfo();
+        }
+
+        // 이자 부과
+        function chargeInterest() {
+            if (gameState.loan > 0) {
+                const interest = gameState.loan * 0.1;
+                gameState.cash -= interest;
+                updatePlayerInfo();
+
+                if (getTotalAssets() <= 0) {
+                    endGame('대출 이자로 인해 파산했습니다!');
+                }
+            }
+        }
+
+        // 플레이어 정보 업데이트
+        function updatePlayerInfo() {
+            document.getElementById('player-cash').textContent = `$${gameState.cash.toFixed(2)}`;
+            document.getElementById('player-loan').textContent = `$${gameState.loan.toFixed(2)}`;
+
+            // 내야할 이자 표시
+            const interest = gameState.loan * 0.1;
+            document.getElementById('player-interest').textContent = `$${interest.toFixed(2)}`;
+
+            const totalAssets = getTotalAssets();
+            document.getElementById('player-total').textContent = `$${totalAssets.toFixed(2)}`;
+
+            // 보유 주식 표시
+            const holdingsContainer = document.getElementById('holdings-container');
+            if (Object.keys(gameState.holdings).length === 0) {
+                holdingsContainer.innerHTML = '<p style="color: #999; text-align: center;">보유 중인 주식이 없습니다</p>';
+            } else {
+                holdingsContainer.innerHTML = '';
+                Object.entries(gameState.holdings).forEach(([stockId, holding]) => {
+                    if (holding.quantity > 0) {
+                        const stock = stocks.find(s => s.id === parseInt(stockId));
+                        if (stock) {
+                            const div = document.createElement('div');
+                            div.className = 'holding-item';
+                            const value = stock.price * holding.quantity;
+                            const profitLoss = (stock.price - holding.avgPrice) * holding.quantity;
+                            const profitColor = profitLoss >= 0 ? '#28a745' : '#dc3545';
+                            const profitSign = profitLoss >= 0 ? '+' : '';
+                            div.innerHTML = `
+                                <div>
+                                    <div>${stock.name} x${holding.quantity}</div>
+                                    <div style="font-size: 0.85em; color: #666;">평균 단가: $${holding.avgPrice.toFixed(2)}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-weight: bold; color: #28a745;">$${value.toFixed(2)}</div>
+                                    <div style="font-size: 0.85em; color: ${profitColor};">${profitSign}$${profitLoss.toFixed(2)}</div>
+                                </div>
+                            `;
+                            holdingsContainer.appendChild(div);
+                        }
+                    }
+                });
+            }
+
+            // 파산 체크
+            if (totalAssets <= 0 && !gameState.gameOver) {
+                endGame('자산이 0 이하가 되었습니다!');
+            }
+        }
+
+        // 총 자산 계산
+        function getTotalAssets() {
+            let stockValue = 0;
+            Object.entries(gameState.holdings).forEach(([stockId, holding]) => {
+                const stock = stocks.find(s => s.id === parseInt(stockId));
+                if (stock && !stock.delisted) {
+                    stockValue += stock.price * holding.quantity;
+                }
+            });
+            return gameState.cash + stockValue - gameState.loan;
+        }
+
+        // 게임 종료
+        function endGame(message) {
+            gameState.gameOver = true;
+            document.getElementById('game-over-message').textContent = message;
+            document.getElementById('game-over').classList.remove('hidden');
+
+            if (priceUpdateInterval) {
+                clearInterval(priceUpdateInterval);
+            }
+        }
+
+        // 게임 재시작
+        function restartGame() {
+            gameState = {
+                cash: 10000,
+                loan: 0,
+                holdings: {},
+                isMarketOpen: false,
+                gameOver: false
+            };
+            stocks = [];
+            stockIdCounter = 0;
+            lastStockCreationMinute = -1;
+            lastInterestMinute = -1;
+
+            document.getElementById('game-over').classList.add('hidden');
+
+            createInitialStock();
+            updatePlayerInfo();
+            renderStocks();
+        }
+
+        // 차트 표시
+        function showChart(stockId) {
+            const stock = stocks.find(s => s.id === stockId);
+            if (!stock) return;
+
+            document.getElementById('chart-stock-name').textContent = `${stock.name} 가격 변동 차트`;
+            document.getElementById('chart-modal').classList.remove('hidden');
+
+            // 약간의 지연 후 차트 그리기 (캔버스 크기가 제대로 잡히도록)
+            setTimeout(() => drawChart(stock), 50);
+        }
+
+        // 차트 닫기
+        function closeChart() {
+            document.getElementById('chart-modal').classList.add('hidden');
+        }
+
+        // 차트 그리기
+        function drawChart(stock) {
+            const canvas = document.getElementById('price-chart');
+            const ctx = canvas.getContext('2d');
+
+            // 캔버스 크기 설정 (고정 크기 사용)
+            const containerWidth = canvas.parentElement.offsetWidth - 60; // padding 고려
+            canvas.width = containerWidth;
+            canvas.height = 400;
+
+            const padding = 50;
+            const width = canvas.width - padding * 2;
+            const height = canvas.height - padding * 2;
+
+            // 캔버스 초기화
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (stock.priceHistory.length < 2) {
+                ctx.fillStyle = '#999';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('가격 변동 데이터가 충분하지 않습니다', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            // 가격 범위 계산
+            const prices = stock.priceHistory.map(h => h.price);
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            const priceRange = maxPrice - minPrice || 1;
+
+            // 배경
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(padding, padding, width, height);
+
+            // 격자선
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (height / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(padding + width, y);
+                ctx.stroke();
+
+                // Y축 레이블
+                const price = maxPrice - (priceRange / 5) * i;
+                ctx.fillStyle = '#666';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(`$${price.toFixed(2)}`, padding - 10, y + 4);
+            }
+
+            // 라인 차트 그리기
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            stock.priceHistory.forEach((point, index) => {
+                const x = padding + (width / (stock.priceHistory.length - 1)) * index;
+                const y = padding + height - ((point.price - minPrice) / priceRange) * height;
+
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+
+            // 데이터 포인트 그리기
+            ctx.fillStyle = '#667eea';
+            stock.priceHistory.forEach((point, index) => {
+                const x = padding + (width / (stock.priceHistory.length - 1)) * index;
+                const y = padding + height - ((point.price - minPrice) / priceRange) * height;
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 현재가 표시
+            ctx.fillStyle = '#28a745';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`현재가: $${stock.price.toFixed(2)}`, padding, padding - 20);
+
+            // X축 레이블
+            ctx.fillStyle = '#666';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            const startTime = stock.priceHistory[0].time;
+            const endTime = stock.priceHistory[stock.priceHistory.length - 1].time;
+            const timeRange = endTime - startTime;
+
+            for (let i = 0; i <= 4; i++) {
+                const x = padding + (width / 4) * i;
+                const time = new Date(startTime + (timeRange / 4) * i);
+                const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
+                ctx.fillText(timeStr, x, canvas.height - padding + 20);
+            }
+
+            // 축
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, padding + height);
+            ctx.lineTo(padding + width, padding + height);
+            ctx.stroke();
+        }
+
+        // 게임 시작
+        init();
+    </script>
+</body>
+</html>
