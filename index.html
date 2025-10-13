@@ -364,9 +364,147 @@
             background: #f0f0f0;
             border-radius: 5px;
         }
+
+        /* 다크 모드 토글 버튼 */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.2em;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+
+        .dark-mode-toggle:hover {
+            background: #555;
+            transform: translateY(-2px);
+        }
+
+        /* 다크 모드 스타일 */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.dark-mode .container {
+            background: #0f3460;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode h1 {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .header-info {
+            background: #16213e;
+        }
+
+        body.dark-mode .info-box h3 {
+            color: #b0b0b0;
+        }
+
+        body.dark-mode .info-box p {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .stocks-section,
+        body.dark-mode .player-section {
+            background: #16213e;
+        }
+
+        body.dark-mode .section-title {
+            color: #e0e0e0;
+            border-bottom-color: #667eea;
+        }
+
+        body.dark-mode .stock-item {
+            background: #1a1a2e;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .stock-item:hover {
+            background: #212842;
+        }
+
+        body.dark-mode .stock-item.delisted {
+            background: #2a2a3e;
+        }
+
+        body.dark-mode .stock-name {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .player-info {
+            background: #1a1a2e;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .player-info h4 {
+            color: #b0b0b0;
+        }
+
+        body.dark-mode .player-info p {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .holdings-list {
+            background: #1a1a2e;
+        }
+
+        body.dark-mode .holding-item {
+            background: #16213e;
+        }
+
+        body.dark-mode .stock-info-clickable:hover {
+            background: #2a2a3e;
+        }
+
+        body.dark-mode .chart-content {
+            background: #1a1a2e;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .chart-title {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #price-chart {
+            background: #16213e;
+            border-color: #333;
+        }
+
+        body.dark-mode .game-over-content {
+            background: #1a1a2e;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .game-over-content h2 {
+            color: #ff6b6b;
+        }
+
+        body.dark-mode .game-over-content p {
+            color: #b0b0b0;
+        }
+
+        .dark-mode-toggle.dark-mode {
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .dark-mode-toggle.dark-mode:hover {
+            background: #e0e0e0;
+        }
     </style>
 </head>
 <body>
+    <button class="dark-mode-toggle" id="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+
     <div class="container">
         <h1>📈 주식 시뮬레이션 게임</h1>
 
@@ -471,6 +609,38 @@
             updateTime();
             setInterval(updateTime, 1000);
             createInitialStock();
+            loadDarkMode();
+        }
+
+        // 다크 모드 토글
+        function toggleDarkMode() {
+            const body = document.body;
+            const toggle = document.getElementById('dark-mode-toggle');
+
+            body.classList.toggle('dark-mode');
+            toggle.classList.toggle('dark-mode');
+
+            // 다크 모드 상태 저장
+            if (body.classList.contains('dark-mode')) {
+                toggle.textContent = '☀️';
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                toggle.textContent = '🌙';
+                localStorage.setItem('darkMode', 'disabled');
+            }
+        }
+
+        // 다크 모드 불러오기
+        function loadDarkMode() {
+            const darkMode = localStorage.getItem('darkMode');
+            const body = document.body;
+            const toggle = document.getElementById('dark-mode-toggle');
+
+            if (darkMode === 'enabled') {
+                body.classList.add('dark-mode');
+                toggle.classList.add('dark-mode');
+                toggle.textContent = '☀️';
+            }
         }
 
         // 시간 업데이트 및 게임 로직
