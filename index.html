@@ -703,6 +703,11 @@
             statusElement.textContent = '시장 개장 중';
             statusElement.className = 'market-open';
 
+            // 새로운 주식 추가 (최대 10개까지)
+            if (stocks.filter(s => !s.delisted).length < 10) {
+                createNewStock();
+            }
+
             // 2초마다 주가 변동
             if (priceUpdateInterval) clearInterval(priceUpdateInterval);
             priceUpdateInterval = setInterval(updateStockPrices, 2000);
@@ -771,8 +776,8 @@
                     stock.priceHistory.shift();
                 }
 
-                // 상장폐지 체크
-                if (stock.price <= 0) {
+                // 상장폐지 체크 ($1 이하)
+                if (stock.price < 1) {
                     stock.delisted = true;
                     stock.price = 0;
                 }
