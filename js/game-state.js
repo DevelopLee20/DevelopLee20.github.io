@@ -11,6 +11,8 @@ export const gameState = {
     exchangeRate: 1300, // 1달러당 원화
     prevExchangeRate: 1300, // 이전 환율 (변동 추적용)
     holdings: {}, // {stockId: {quantity, avgPrice}}
+    leveragedPositions: [], // [{id, stockId, quantity, entryPrice, leverage, ownCapital, borrowedAmount, liquidationPrice}]
+    leverageIdCounter: 0, // 레버리지 포지션 ID 카운터
     marketStatus: {
         korea: { isOpen: false },
         usa: { isOpen: false }
@@ -24,6 +26,8 @@ export function resetGameState() {
     gameState.exchangeRate = 1300;
     gameState.prevExchangeRate = 1300;
     gameState.holdings = {};
+    gameState.leveragedPositions = [];
+    gameState.leverageIdCounter = 0;
     gameState.marketStatus = {
         korea: { isOpen: false },
         usa: { isOpen: false }
@@ -36,6 +40,7 @@ export function getTotalAssets() {
     let stockKrwValue = 0;
     let stockUsdValue = 0;
 
+    // 일반 보유 주식
     Object.entries(gameState.holdings).forEach(([stockId, holding]) => {
         let stock = null;
         for (const marketId in markets) {
@@ -45,7 +50,7 @@ export function getTotalAssets() {
                 break;
             }
         }
-        
+
         if (stock && !stock.delisted) {
             const value = stock.price * holding.quantity;
             if (stock.market === 'korea') {
@@ -56,9 +61,33 @@ export function getTotalAssets() {
         }
     });
 
+    // 레버리지 포지션
+    gameState.leveragedPositions.forEach(position => {
+        let stock = null;
+        for (const marketId in markets) {
+            const found = markets[marketId].find(s => s.id === position.stockId);
+            if (found) {
+                stock = found;
+                break;
+            }
+        }
+
+        if (stock) {
+            const currentValue = stock.price * position.quantity;
+            const profitLoss = currentValue - position.borrowedAmount - position.ownCapital;
+            const positionValue = position.ownCapital + profitLoss;
+
+            if (stock.market === 'korea') {
+                stockKrwValue += positionValue;
+            } else if (stock.market === 'usa') {
+                stockUsdValue += positionValue;
+            }
+        }
+    });
+
     const totalKrw = gameState.cash.krw + stockKrwValue;
     const totalUsdInKrw = (gameState.cash.usd + stockUsdValue) * gameState.exchangeRate;
-    
+
     return totalKrw + totalUsdInKrw;
 }
 

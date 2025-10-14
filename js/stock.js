@@ -194,3 +194,116 @@ export function findStock(stockId) {
 export function getActiveStocksCount(marketId) {
     return markets[marketId].filter(s => !s.delisted).length;
 }
+
+// 레버리지 매수
+export function buyStockWithLeverage(stockId, quantity, leverage, gameState) {
+    const stock = findStock(stockId);
+    if (!stock || stock.delisted || !gameState.marketStatus[stock.market].isOpen || gameState.gameOver) {
+        return { success: false };
+    }
+
+    const totalCost = stock.price * quantity;
+    const currency = stock.market === 'korea' ? 'krw' : 'usd';
+    const currencyName = currency === 'krw' ? '원' : '달러';
+
+    // 필요한 자본금 = 총 비용 / 레버리지
+    const ownCapital = totalCost / leverage;
+    const fee = ownCapital * 0.01; // 1% 수수료
+    const totalRequired = ownCapital + fee;
+
+    if (gameState.cash[currency] < totalRequired) {
+        return { success: false, message: `보유 ${currencyName}가 부족합니다! (필요: ${Math.ceil(totalRequired).toLocaleString()}${currencyName})` };
+    }
+
+    // 차입금 = 총 비용 - 자본금
+    const borrowedAmount = totalCost - ownCapital;
+
+    // 청산가 계산: 손실이 자본금의 90%에 도달하는 가격
+    // currentValue - borrowedAmount - ownCapital = -ownCapital * 0.9
+    // currentValue = borrowedAmount + ownCapital * 0.1
+    // price * quantity = borrowedAmount + ownCapital * 0.1
+    const liquidationPrice = (borrowedAmount + ownCapital * 0.1) / quantity;
+
+    gameState.cash[currency] -= totalRequired;
+
+    const position = {
+        id: gameState.leverageIdCounter++,
+        stockId: stockId,
+        quantity: quantity,
+        entryPrice: stock.price,
+        leverage: leverage,
+        ownCapital: ownCapital,
+        borrowedAmount: borrowedAmount,
+        liquidationPrice: liquidationPrice
+    };
+
+    gameState.leveragedPositions.push(position);
+
+    return { success: true, stockName: stock.name, fee: fee, liquidationPrice: liquidationPrice };
+}
+
+// 레버리지 포지션 청산
+export function closeLeveragePosition(positionId, gameState) {
+    const positionIndex = gameState.leveragedPositions.findIndex(p => p.id === positionId);
+    if (positionIndex === -1 || gameState.gameOver) {
+        return { success: false };
+    }
+
+    const position = gameState.leveragedPositions[positionIndex];
+    const stock = findStock(position.stockId);
+
+    if (!stock) {
+        return { success: false };
+    }
+
+    const currency = stock.market === 'korea' ? 'krw' : 'usd';
+    const currentValue = stock.price * position.quantity;
+
+    // 수익금 = 현재 가치 - 차입금 - 자본금
+    const profitLoss = currentValue - position.borrowedAmount - position.ownCapital;
+    const finalAmount = position.ownCapital + profitLoss;
+
+    gameState.cash[currency] += finalAmount;
+    gameState.leveragedPositions.splice(positionIndex, 1);
+
+    return {
+        success: true,
+        stockName: stock.name,
+        quantity: position.quantity,
+        profitLoss: profitLoss,
+        leverage: position.leverage
+    };
+}
+
+// 자동 청산 체크 (주가 업데이트 시 호출)
+export function checkLiquidations(gameState) {
+    const liquidatedPositions = [];
+
+    for (let i = gameState.leveragedPositions.length - 1; i >= 0; i--) {
+        const position = gameState.leveragedPositions[i];
+        const stock = findStock(position.stockId);
+
+        if (!stock) continue;
+
+        // 청산 조건: 현재 가격이 청산가 이하
+        if (stock.price <= position.liquidationPrice || stock.delisted) {
+            const currency = stock.market === 'korea' ? 'krw' : 'usd';
+            const currentValue = stock.price * position.quantity;
+            const profitLoss = currentValue - position.borrowedAmount - position.ownCapital;
+            const finalAmount = Math.max(0, position.ownCapital + profitLoss); // 음수 방지
+
+            gameState.cash[currency] += finalAmount;
+
+            liquidatedPositions.push({
+                stockName: stock.name,
+                quantity: position.quantity,
+                leverage: position.leverage,
+                loss: -profitLoss
+            });
+
+            gameState.leveragedPositions.splice(i, 1);
+        }
+    }
+
+    return liquidatedPositions;
+}

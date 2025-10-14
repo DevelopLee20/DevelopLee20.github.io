@@ -42,6 +42,29 @@
                     <button id="tab-usa" class="tab-button" onclick="window.switchTab('usa')">🇺🇸 미국 주식</button>
                 </div>
 
+                <div class="leverage-controls">
+                    <div class="leverage-toggle-container">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="leverage-toggle">
+                            <span class="toggle-text">📊 레버리지 모드</span>
+                        </label>
+                    </div>
+                    <div class="leverage-ratio-container" id="leverage-ratio-container" style="display: none;">
+                        <label class="ratio-label">
+                            <input type="radio" name="leverage-ratio" value="2" checked>
+                            <span>2x</span>
+                        </label>
+                        <label class="ratio-label">
+                            <input type="radio" name="leverage-ratio" value="3">
+                            <span>3x</span>
+                        </label>
+                        <label class="ratio-label">
+                            <input type="radio" name="leverage-ratio" value="4">
+                            <span>4x</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div id="korea-market" class="tab-panel active">
                     <div id="stock-list-korea" class="stock-list">
                         <!-- 국내 주식 목록 -->
@@ -110,6 +133,13 @@
                         <p class="empty-holdings">보유 중인 주식이 없습니다</p>
                     </div>
                 </div>
+
+                <div class="holdings-list">
+                    <h4>📊 레버리지 포지션</h4>
+                    <div id="leverage-positions-container">
+                        <p class="empty-holdings">레버리지 포지션이 없습니다</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -133,5 +163,22 @@
     </div>
 
     <script type="module" src="js/main.js"></script>
+    <script>
+        // 레버리지 토글 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', function() {
+            const leverageToggle = document.getElementById('leverage-toggle');
+            const leverageRatioContainer = document.getElementById('leverage-ratio-container');
+
+            if (leverageToggle) {
+                leverageToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        leverageRatioContainer.style.display = 'flex';
+                    } else {
+                        leverageRatioContainer.style.display = 'none';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

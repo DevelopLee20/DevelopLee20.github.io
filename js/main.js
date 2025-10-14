@@ -1,6 +1,6 @@
 // 메인 게임 로직
 import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee } from './game-state.js';
-import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock } from './stock.js';
+import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock, buyStockWithLeverage, closeLeveragePosition, checkLiquidations } from './stock.js';
 import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast } from './ui.js';
 import { showChart, closeChart } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
@@ -119,6 +119,13 @@ function handleMarketOpen(marketId) {
     if (priceUpdateIntervals[marketId]) clearInterval(priceUpdateIntervals[marketId]);
     priceUpdateIntervals[marketId] = setInterval(() => {
         updateStockPrices(marketId);
+
+        // 레버리지 청산 체크
+        const liquidatedPositions = checkLiquidations(gameState);
+        liquidatedPositions.forEach(pos => {
+            showToast(`${pos.stockName} ${pos.leverage}x 레버리지 포지션이 청산되었습니다!`, 'error');
+        });
+
         renderStocks();
         updatePlayerInfo();
     }, 2000);
@@ -208,13 +215,47 @@ function exchangeHandler(direction) {
 
 // 주식 매수 핸들러
 function buyStockHandler(stockId, quantity = 1) {
-    const result = buyStock(stockId, quantity, gameState);
+    const leverageEnabled = document.getElementById('leverage-toggle')?.checked;
+
+    if (leverageEnabled) {
+        const leverage = parseInt(document.querySelector('input[name="leverage-ratio"]:checked')?.value || '2');
+        const result = buyStockWithLeverage(stockId, quantity, leverage, gameState);
+
+        if (result.success) {
+            updatePlayerInfo();
+            renderStocks();
+            const stock = findStock(stockId);
+            const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+            const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
+            const liquidationPrice = stock.market === 'korea' ? Math.floor(result.liquidationPrice).toLocaleString() : result.liquidationPrice.toFixed(2);
+            showToast(`${result.stockName} ${quantity}주 ${leverage}x 레버리지 매수 완료! (수수료: ${currencySymbol}${feeAmount}, 청산가: ${currencySymbol}${liquidationPrice})`);
+        } else if (result.message) {
+            showToast(result.message, 'error');
+        }
+    } else {
+        const result = buyStock(stockId, quantity, gameState);
+        if (result.success) {
+            updatePlayerInfo();
+            renderStocks();
+            showToast(`${result.stockName} ${quantity}주 매수 완료!`);
+        } else if (result.message) {
+            showToast(result.message, 'error');
+        }
+    }
+}
+
+// 레버리지 포지션 청산 핸들러
+function closeLeveragePositionHandler(positionId) {
+    const result = closeLeveragePosition(positionId, gameState);
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
-        showToast(`${result.stockName} ${quantity}주 매수 완료!`);
-    } else if (result.message) {
-        showToast(result.message, 'error');
+        const stock = findStock(result.stockId || 0);
+        const currencySymbol = stock?.market === 'korea' ? '₩' : '$';
+        const profitLossAmount = Math.abs(result.profitLoss);
+        const formattedAmount = stock?.market === 'korea' ? Math.floor(profitLossAmount).toLocaleString() : profitLossAmount.toFixed(2);
+        const profitLossText = result.profitLoss >= 0 ? `+${currencySymbol}${formattedAmount}` : `-${currencySymbol}${formattedAmount}`;
+        showToast(`${result.stockName} ${result.quantity}주 ${result.leverage}x 레버리지 포지션 청산 완료! (${profitLossText})`);
     }
 }
 
@@ -342,6 +383,7 @@ function resetLife() {
 window.buyStockHandler = buyStockHandler;
 window.sellStockHandler = sellStockHandler;
 window.sellAllStockHandler = sellAllStockHandler;
+window.closeLeveragePositionHandler = closeLeveragePositionHandler;
 window.restartGame = restartGameHandler;
 window.showChart = showChart;
 window.closeChart = closeChart;

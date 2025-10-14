@@ -108,43 +108,94 @@ function updateHoldings() {
     const holdingsContainer = document.getElementById('holdings-container');
     if (Object.keys(gameState.holdings).length === 0) {
         holdingsContainer.innerHTML = '<p class="empty-holdings">보유 중인 주식이 없습니다</p>';
+    } else {
+        holdingsContainer.innerHTML = '';
+        Object.entries(gameState.holdings).forEach(([stockId, holding]) => {
+            if (holding.quantity > 0) {
+                const stock = findStock(parseInt(stockId));
+                if (stock) {
+                    const div = document.createElement('div');
+                    div.className = 'holding-item';
+                    const value = stock.price * holding.quantity;
+                    const profitLoss = (stock.price - holding.avgPrice) * holding.quantity;
+                    const profitPercent = holding.avgPrice > 0 ? ((stock.price - holding.avgPrice) / holding.avgPrice) * 100 : 0;
+                    const profitColor = profitLoss >= 0 ? '#28a745' : '#dc3545';
+                    const profitSign = profitLoss >= 0 ? '+' : '';
+                    const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+
+                    const formatCurrency = (amount) => stock.market === 'korea' ? Math.round(amount).toLocaleString() : amount.toFixed(2);
+
+                    div.innerHTML = `
+                        <div class="holding-info">
+                            <div>${stock.name} x${holding.quantity}</div>
+                            <div style="font-size: 0.85em; color: #666;">평균 단가: ${currencySymbol}${formatCurrency(holding.avgPrice)}</div>
+                        </div>
+                        <div class="holding-value">
+                            <div style="font-weight: bold; color: #28a745;">${currencySymbol}${formatCurrency(value)}</div>
+                            <div style="font-size: 0.85em; color: ${profitColor};">
+                                ${profitSign}${currencySymbol}${formatCurrency(profitLoss)} (${profitSign}${profitPercent.toFixed(2)}%)
+                            </div>
+                        </div>
+                        <div class="holding-actions">
+                            <button class="sell-btn sell-btn-small" onclick="window.sellStockHandler(${stockId})">매도</button>
+                            <button class="sell-btn sell-btn-small" onclick="window.sellAllStockHandler(${stockId})">전부</button>
+                        </div>
+                    `;
+                    holdingsContainer.appendChild(div);
+                }
+            }
+        });
+    }
+
+    // 레버리지 포지션 표시
+    updateLeveragePositions();
+}
+
+// 레버리지 포지션 표시
+function updateLeveragePositions() {
+    const leverageContainer = document.getElementById('leverage-positions-container');
+    if (!gameState.leveragedPositions || gameState.leveragedPositions.length === 0) {
+        leverageContainer.innerHTML = '<p class="empty-holdings">레버리지 포지션이 없습니다</p>';
         return;
     }
-    
-    holdingsContainer.innerHTML = '';
-    Object.entries(gameState.holdings).forEach(([stockId, holding]) => {
-        if (holding.quantity > 0) {
-            const stock = findStock(parseInt(stockId));
-            if (stock) {
-                const div = document.createElement('div');
-                div.className = 'holding-item';
-                const value = stock.price * holding.quantity;
-                const profitLoss = (stock.price - holding.avgPrice) * holding.quantity;
-                const profitPercent = holding.avgPrice > 0 ? ((stock.price - holding.avgPrice) / holding.avgPrice) * 100 : 0;
-                const profitColor = profitLoss >= 0 ? '#28a745' : '#dc3545';
-                const profitSign = profitLoss >= 0 ? '+' : '';
-                const currencySymbol = stock.market === 'korea' ? '₩' : '$';
-                
-                const formatCurrency = (amount) => stock.market === 'korea' ? Math.round(amount).toLocaleString() : amount.toFixed(2);
 
-                div.innerHTML = `
-                    <div class="holding-info">
-                        <div>${stock.name} x${holding.quantity}</div>
-                        <div style="font-size: 0.85em; color: #666;">평균 단가: ${currencySymbol}${formatCurrency(holding.avgPrice)}</div>
+    leverageContainer.innerHTML = '';
+    gameState.leveragedPositions.forEach(position => {
+        const stock = findStock(position.stockId);
+        if (stock) {
+            const div = document.createElement('div');
+            div.className = 'holding-item leverage-position';
+            const currentValue = stock.price * position.quantity;
+            const profitLoss = currentValue - position.borrowedAmount - position.ownCapital;
+            const profitPercent = position.ownCapital > 0 ? (profitLoss / position.ownCapital) * 100 : 0;
+            const profitColor = profitLoss >= 0 ? '#28a745' : '#dc3545';
+            const profitSign = profitLoss >= 0 ? '+' : '';
+            const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+
+            const formatCurrency = (amount) => stock.market === 'korea' ? Math.round(amount).toLocaleString() : amount.toFixed(2);
+
+            // 청산가까지의 거리 계산
+            const distanceToLiquidation = ((stock.price - position.liquidationPrice) / position.liquidationPrice) * 100;
+            const liquidationWarning = distanceToLiquidation < 10 ? 'liquidation-warning' : '';
+
+            div.innerHTML = `
+                <div class="holding-info">
+                    <div>${stock.name} x${position.quantity} <span class="leverage-badge">${position.leverage}x</span></div>
+                    <div style="font-size: 0.85em; color: #666;">진입가: ${currencySymbol}${formatCurrency(position.entryPrice)}</div>
+                    <div style="font-size: 0.85em; color: #ff6b6b;">청산가: ${currencySymbol}${formatCurrency(position.liquidationPrice)}</div>
+                </div>
+                <div class="holding-value">
+                    <div style="font-weight: bold; color: #28a745;">${currencySymbol}${formatCurrency(position.ownCapital + profitLoss)}</div>
+                    <div style="font-size: 0.85em; color: ${profitColor};">
+                        ${profitSign}${currencySymbol}${formatCurrency(profitLoss)} (${profitSign}${profitPercent.toFixed(2)}%)
                     </div>
-                    <div class="holding-value">
-                        <div style="font-weight: bold; color: #28a745;">${currencySymbol}${formatCurrency(value)}</div>
-                        <div style="font-size: 0.85em; color: ${profitColor};">
-                            ${profitSign}${currencySymbol}${formatCurrency(profitLoss)} (${profitSign}${profitPercent.toFixed(2)}%)
-                        </div>
-                    </div>
-                    <div class="holding-actions">
-                        <button class="sell-btn sell-btn-small" onclick="window.sellStockHandler(${stockId})">매도</button>
-                        <button class="sell-btn sell-btn-small" onclick="window.sellAllStockHandler(${stockId})">전부</button>
-                    </div>
-                `;
-                holdingsContainer.appendChild(div);
-            }
+                </div>
+                <div class="holding-actions">
+                    <button class="sell-btn sell-btn-small" onclick="window.closeLeveragePositionHandler(${position.id})">청산</button>
+                </div>
+            `;
+            holdingsContainer.appendChild(div);
+            leverageContainer.appendChild(div);
         }
     });
 }

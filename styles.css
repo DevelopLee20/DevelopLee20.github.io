@@ -1250,4 +1250,158 @@ body.dark-mode .toast-warning {
     }
 }
 
+/* 레버리지 컨트롤 */
+.leverage-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.leverage-toggle-container {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 8px;
+}
+
+.toggle-label input[type="checkbox"] {
+    width: 40px;
+    height: 20px;
+    cursor: pointer;
+    appearance: none;
+    background: #ccc;
+    border-radius: 10px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.toggle-label input[type="checkbox"]:checked {
+    background: #667eea;
+}
+
+.toggle-label input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s;
+}
+
+.toggle-label input[type="checkbox"]:checked::before {
+    left: 22px;
+}
+
+.toggle-text {
+    font-weight: bold;
+    font-size: 0.95em;
+    color: #333;
+}
+
+.leverage-ratio-container {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ratio-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.ratio-label:hover {
+    background: #e9ecef;
+    border-color: #667eea;
+}
+
+.ratio-label input[type="radio"] {
+    cursor: pointer;
+}
+
+.ratio-label input[type="radio"]:checked + span {
+    font-weight: bold;
+    color: #667eea;
+}
+
+.ratio-label span {
+    font-size: 0.9em;
+    color: #333;
+}
+
+/* 레버리지 포지션 배지 */
+.leverage-badge {
+    display: inline-block;
+    background: #ffc107;
+    color: #333;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.leverage-position {
+    border-left: 3px solid #ffc107;
+}
+
+.liquidation-warning {
+    background: #ffe5e5 !important;
+    border-left-color: #dc3545 !important;
+}
+
+/* Dark mode for leverage controls */
+body.dark-mode .leverage-controls {
+    background: #1a1a2e;
+}
+
+body.dark-mode .toggle-text {
+    color: #e0e0e0;
+}
+
+body.dark-mode .ratio-label {
+    background: #16213e;
+    border-color: #2a3a5e;
+}
+
+body.dark-mode .ratio-label:hover {
+    background: #2a2a3e;
+    border-color: #667eea;
+}
+
+body.dark-mode .ratio-label span {
+    color: #e0e0e0;
+}
+
+body.dark-mode .ratio-label input[type="radio"]:checked + span {
+    color: #829bff;
+}
+
+body.dark-mode .leverage-badge {
+    background: #e0a800;
+    color: #1a1a2e;
+}
+
+body.dark-mode .liquidation-warning {
+    background: #3d2828 !important;
+}
+
 
