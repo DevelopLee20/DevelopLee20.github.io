@@ -1,4 +1,4 @@
-import { markets } from './stock.js';
+import { markets, setStockIdCounter } from './stock.js';
 
 const EXCHANGE_FEE = 0.005; // 0.5% 환전 수수료
 
@@ -155,7 +155,20 @@ export function loadGameState() {
                 markets.korea.push(...loadedData.stocks);
                 markets.usa.length = 0;
             }
-            
+
+            // stockIdCounter 복원 (가장 큰 ID + 1로 설정)
+            let maxId = -1;
+            Object.keys(markets).forEach(marketId => {
+                markets[marketId].forEach(stock => {
+                    if (stock.id > maxId) {
+                        maxId = stock.id;
+                    }
+                });
+            });
+            if (maxId >= 0) {
+                setStockIdCounter(maxId + 1);
+            }
+
             console.log('저장된 게임 상태를 불러왔습니다.');
             return true;
         }

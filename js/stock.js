@@ -5,6 +5,11 @@ export let markets = {
 };
 let stockIdCounter = 0;
 
+// stockIdCounter를 설정하는 함수 (게임 로드 시 사용)
+export function setStockIdCounter(value) {
+    stockIdCounter = value;
+}
+
 const KOREAN_STOCK_NAMES = [
     '엔사', '순천향대병원', '순양그룹', '사성', '럭키은성',
     'EA 스퍼트', 'F1 레이', '클로나이 AI', '개구리다 푸드', '페이커 건설'
@@ -12,7 +17,7 @@ const KOREAN_STOCK_NAMES = [
 
 const US_STOCK_NAMES = [
     '매크로소프트', '피어 컴퓨터', '구골', '아마조니아', '테슬러',
-    '페이스북', '엔비디아', '인텔', 'AMD', '오라클'
+    '페이스북', '엔비디아', '인텔', 'AMD', '오라클', '피그미'
 ];
 
 const STOCK_NAMES = {

@@ -49,6 +49,10 @@ function drawChart(stock) {
     const maxPrice = Math.max(...prices);
     const priceRange = maxPrice - minPrice || 1;
 
+    // 화폐 기호 결정
+    const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+    const formatPrice = (price) => stock.market === 'korea' ? Math.round(price).toLocaleString() : price.toFixed(2);
+
     // 배경
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(padding, padding, width, height);
@@ -68,7 +72,7 @@ function drawChart(stock) {
         ctx.fillStyle = '#666';
         ctx.font = '12px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`$${price.toFixed(2)}`, padding - 10, y + 4);
+        ctx.fillText(`${currencySymbol}${formatPrice(price)}`, padding - 10, y + 4);
     }
 
     // 라인 차트 그리기
@@ -102,7 +106,7 @@ function drawChart(stock) {
     ctx.fillStyle = '#28a745';
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`현재가: $${stock.price.toFixed(2)}`, padding, padding - 20);
+    ctx.fillText(`현재가: ${currencySymbol}${formatPrice(stock.price)}`, padding, padding - 20);
 
     // X축 레이블
     ctx.fillStyle = '#666';
