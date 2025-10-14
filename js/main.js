@@ -1,6 +1,6 @@
 // 메인 게임 로직
 import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee } from './game-state.js';
-import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount } from './stock.js';
+import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock } from './stock.js';
 import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast } from './ui.js';
 import { showChart, closeChart } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
@@ -220,21 +220,49 @@ function buyStockHandler(stockId, quantity = 1) {
 
 // 주식 매도 핸들러
 function sellStockHandler(stockId) {
+    const stock = findStock(stockId); // 매도 전에 주식 정보 가져오기
     const result = sellStock(stockId, gameState);
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
-        showToast(`${result.stockName} 1주 매도 완료!`);
+        const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+        const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
+        showToast(`${result.stockName} 1주 매도 완료! (수수료: ${currencySymbol}${feeAmount})`);
     }
 }
 
 // 주식 전체 매도 핸들러
 function sellAllStockHandler(stockId) {
+    console.log('sellAllStockHandler 시작 - stockId:', stockId);
+    const stock = findStock(stockId); // 매도 전에 주식 정보 가져오기
+    console.log('stock:', stock);
+
+    if (!stock) {
+        showToast('주식을 찾을 수 없습니다.', 'error');
+        return;
+    }
+
     const result = sellAllStock(stockId, gameState);
+    console.log('result:', result);
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
-        showToast(`${result.stockName} ${result.quantity}주 전량 매도 완료!`);
+        const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+        const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
+        console.log('전량 매도 디버그:', {
+            stockName: result.stockName,
+            quantity: result.quantity,
+            fee: result.fee,
+            feeAmount: feeAmount,
+            currencySymbol: currencySymbol,
+            market: stock.market
+        });
+        const message = `${result.stockName} ${result.quantity}주 전량 매도 완료! (수수료: ${currencySymbol}${feeAmount})`;
+        console.log('토스트 메시지:', message);
+        showToast(message);
+    } else {
+        console.log('매도 실패');
+        showToast('매도에 실패했습니다.', 'error');
     }
 }
 

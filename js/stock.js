@@ -139,12 +139,16 @@ export function sellStock(stockId, gameState) {
 
     if (gameState.holdings[stockId] && gameState.holdings[stockId].quantity > 0) {
         const currency = stock.market === 'korea' ? 'krw' : 'usd';
-        gameState.cash[currency] += stock.price;
+        const revenue = stock.price;
+        const fee = revenue * 0.01; // 1% 수수료
+        const finalRevenue = revenue - fee;
+
+        gameState.cash[currency] += finalRevenue;
         gameState.holdings[stockId].quantity--;
         if (gameState.holdings[stockId].quantity === 0) {
             delete gameState.holdings[stockId];
         }
-        return { success: true, stockName: stock.name };
+        return { success: true, stockName: stock.name, fee: fee };
     }
     return { success: false };
 }
@@ -159,10 +163,13 @@ export function sellAllStock(stockId, gameState) {
     if (gameState.holdings[stockId] && gameState.holdings[stockId].quantity > 0) {
         const quantity = gameState.holdings[stockId].quantity;
         const revenue = stock.price * quantity;
+        const fee = revenue * 0.01; // 1% 수수료
+        const finalRevenue = revenue - fee;
         const currency = stock.market === 'korea' ? 'krw' : 'usd';
-        gameState.cash[currency] += revenue;
+
+        gameState.cash[currency] += finalRevenue;
         delete gameState.holdings[stockId];
-        return { success: true, stockName: stock.name, quantity: quantity };
+        return { success: true, stockName: stock.name, quantity: quantity, fee: fee };
     }
     return { success: false };
 }
