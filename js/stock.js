@@ -268,6 +268,7 @@ export function closeLeveragePosition(positionId, gameState) {
 
     return {
         success: true,
+        stockId: position.stockId,
         stockName: stock.name,
         quantity: position.quantity,
         profitLoss: profitLoss,
