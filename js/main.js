@@ -1,111 +1,199 @@
 // 메인 게임 로직
-import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState } from './game-state.js';
-import { stocks, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount } from './stock.js';
-import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver } from './ui.js';
+import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw } from './game-state.js';
+import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount } from './stock.js';
+import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab } from './ui.js';
 import { showChart, closeChart } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
 
 // 타이머 관련
-let priceUpdateInterval = null;
+const priceUpdateIntervals = {
+    korea: null,
+    usa: null
+};
 let lastStockCreationMinute = -1;
-let lastInterestMinute = -1;
+let lastExchangeRateUpdateSecond = -1;
+
+// 각 시장의 개장 시간 정의
+const marketHours = {
+    korea: {
+        label: '🇰🇷 국내장',
+        open: (min) => min % 10 < 5,
+        newStockInterval: 15
+    },
+    usa: {
+        label: '🇺🇸 미국장',
+        open: (min) => min % 10 >= 5,
+        newStockInterval: 20
+    }
+};
 
 // 초기화
 function init() {
-    // 1. 설정 먼저 불러오기
     loadDarkMode();
     loadFontSize();
 
-    // 2. 저장된 게임 데이터 불러오기 또는 새 게임 시작
     if (!loadGameState()) {
         createInitialStocks();
         console.log('새 게임을 시작합니다.');
     }
 
-    // 3. 현재 시간에 맞춰 게임 상태 동기화 (중요: 첫 렌더링 전)
+    switchTab('korea'); // 기본 탭 설정
     updateTime();
 
-    // 4. 동기화된 상태로 첫 화면 렌더링
+    // 시장 상태 업데이트 및 개장 중인 시장의 가격 업데이트 시작
+    Object.keys(gameState.marketStatus).forEach(marketId => {
+        updateMarketStatus(marketId, gameState.marketStatus[marketId].isOpen);
+
+        // 이미 개장 중인 시장이면 가격 업데이트 시작
+        if (gameState.marketStatus[marketId].isOpen) {
+            if (priceUpdateIntervals[marketId]) clearInterval(priceUpdateIntervals[marketId]);
+            priceUpdateIntervals[marketId] = setInterval(() => {
+                updateStockPrices(marketId);
+                renderStocks();
+                updatePlayerInfo();
+            }, 2000);
+        }
+    });
+
     renderStocks();
     updatePlayerInfo();
+    initExchangeSlider();
 
-    // 5. 1초마다 게임 루프 실행
     setInterval(updateTime, 1000);
-
-    // 6. 페이지 나가기 전 자동 저장 설정
     window.addEventListener('beforeunload', saveGameState);
 }
 
 // 시간 업데이트 및 게임 로직
 function updateTime() {
     const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
 
-    updateTimeDisplay(`${hours}:${minutes}:${seconds}`);
+    updateTimeDisplay(`${String(now.getHours()).padStart(2, '0')}:${minutes}:${String(seconds).padStart(2, '0')}`);
+    checkAllMarketStatus(minutes);
 
-    // 장 상태 체크
-    checkMarketStatus(minutes);
+    // 5초마다 환율 변동
+    if (seconds % 5 === 0 && seconds !== lastExchangeRateUpdateSecond) {
+        updateExchangeRate();
+        lastExchangeRateUpdateSecond = seconds;
+    }
 
-    // 새 주식 생성 체크 (15분 간격: 00, 15, 30, 45)
-    if (minutes % 15 === 0 && minutes !== lastStockCreationMinute) {
-        createNewStock();
+    if (minutes !== lastStockCreationMinute) {
+        Object.keys(marketHours).forEach(marketId => {
+            if (minutes % marketHours[marketId].newStockInterval === 0) {
+                createNewStock(marketId);
+            }
+        });
         renderStocks();
         lastStockCreationMinute = minutes;
     }
-
-    // 자산 업데이트
+    
     updatePlayerInfo();
 }
 
-// 장 상태 체크
-function checkMarketStatus(minutes) {
+// 모든 시장 상태 체크
+function checkAllMarketStatus(minutes) {
     const minute = parseInt(minutes);
-    const shouldBeOpen = (minute >= 1 && minute <= 8) ||
-                         (minute >= 11 && minute <= 18) ||
-                         (minute >= 21 && minute <= 28) ||
-                         (minute >= 31 && minute <= 38) ||
-                         (minute >= 41 && minute <= 48) ||
-                         (minute >= 51 && minute <= 58);
+    Object.keys(marketHours).forEach(marketId => {
+        const shouldBeOpen = marketHours[marketId].open(minute);
+        const isCurrentlyOpen = gameState.marketStatus[marketId].isOpen;
 
-    if (shouldBeOpen && !gameState.isMarketOpen) {
-        handleMarketOpen();
-    } else if (!shouldBeOpen && gameState.isMarketOpen) {
-        handleMarketClose();
-    }
+        if (shouldBeOpen && !isCurrentlyOpen) {
+            handleMarketOpen(marketId);
+        } else if (!shouldBeOpen && isCurrentlyOpen) {
+            handleMarketClose(marketId);
+        }
+    });
 }
 
 // 시장 개장 처리
-function handleMarketOpen() {
-    openMarket();
-    updateMarketStatus(true);
+function handleMarketOpen(marketId) {
+    openMarket(marketId);
+    updateMarketStatus(marketId, true);
 
-    // 새로운 주식 추가 (최대 10개까지)
-    if (getActiveStocksCount() < 10) {
-        createNewStock();
-        renderStocks();
+    if (getActiveStocksCount(marketId) < 10) {
+        createNewStock(marketId);
     }
+    renderStocks();
 
-    // 2초마다 주가 변동
-    if (priceUpdateInterval) clearInterval(priceUpdateInterval);
-    priceUpdateInterval = setInterval(() => {
-        updateStockPrices();
+    if (priceUpdateIntervals[marketId]) clearInterval(priceUpdateIntervals[marketId]);
+    priceUpdateIntervals[marketId] = setInterval(() => {
+        updateStockPrices(marketId);
         renderStocks();
         updatePlayerInfo();
     }, 2000);
 }
 
 // 시장 휴장 처리
-function handleMarketClose() {
-    closeMarket();
-    updateMarketStatus(false);
+function handleMarketClose(marketId) {
+    closeMarket(marketId);
+    updateMarketStatus(marketId, false);
 
-    if (priceUpdateInterval) {
-        clearInterval(priceUpdateInterval);
-        priceUpdateInterval = null;
+    if (priceUpdateIntervals[marketId]) {
+        clearInterval(priceUpdateIntervals[marketId]);
+        priceUpdateIntervals[marketId] = null;
     }
-    renderStocks(); // 휴장 시 버튼을 비활성화하기 위해 주식 목록을 다시 렌더링
+    renderStocks();
+}
+
+// 환전 슬라이더 초기화
+function initExchangeSlider() {
+    const slider = document.getElementById('exchange-slider');
+    const amountDisplay = document.getElementById('exchange-amount-display');
+    const krwEquivalent = document.getElementById('krw-equivalent');
+
+    slider.addEventListener('input', function() {
+        const usdAmount = parseInt(this.value);
+        amountDisplay.textContent = usdAmount;
+        const krwAmount = Math.floor(usdAmount * gameState.exchangeRate);
+        krwEquivalent.textContent = `≈ ₩${krwAmount.toLocaleString()}`;
+    });
+
+    // 초기값 설정
+    updateSliderMax();
+}
+
+// 슬라이더 최댓값 업데이트
+function updateSliderMax() {
+    const slider = document.getElementById('exchange-slider');
+    const maxUsd = Math.floor(gameState.cash.krw / gameState.exchangeRate) + Math.floor(gameState.cash.usd);
+    slider.max = Math.max(maxUsd, 1000);
+
+    // 현재 값이 최댓값을 초과하면 조정
+    if (parseInt(slider.value) > slider.max) {
+        slider.value = slider.max;
+        slider.dispatchEvent(new Event('input'));
+    }
+}
+
+// 환전 핸들러
+function exchangeHandler(direction) {
+    const slider = document.getElementById('exchange-slider');
+    const usdAmount = parseInt(slider.value);
+
+    if (usdAmount <= 0) {
+        alert('환전할 금액을 선택하세요.');
+        return;
+    }
+
+    let result;
+    if (direction === 'krw_to_usd') {
+        // 원화를 달러로: 필요한 원화 = usdAmount * 환율
+        const krwNeeded = usdAmount * gameState.exchangeRate;
+        result = exchangeKrwToUsd(krwNeeded);
+    } else {
+        // 달러를 원화로
+        result = exchangeUsdToKrw(usdAmount);
+    }
+
+    if (result.success) {
+        slider.value = 0;
+        slider.dispatchEvent(new Event('input'));
+        updatePlayerInfo();
+        updateSliderMax();
+    } else {
+        alert(result.message);
+    }
 }
 
 // 주식 매수 핸들러
@@ -142,12 +230,13 @@ function handleGameOver(message) {
     endGame();
     showGameOver(message);
 
-    if (priceUpdateInterval) {
-        clearInterval(priceUpdateInterval);
-    }
+    Object.keys(priceUpdateIntervals).forEach(marketId => {
+        if (priceUpdateIntervals[marketId]) {
+            clearInterval(priceUpdateIntervals[marketId]);
+        }
+    });
 
-    // 파산 체크도 포함
-    const totalAssets = getTotalAssets(stocks);
+    const totalAssets = getTotalAssets();
     if (totalAssets <= 0 && !gameState.gameOver) {
         endGame();
         showGameOver('자산이 0 이하가 되었습니다!');
@@ -159,12 +248,44 @@ function restartGameHandler() {
     resetGameState();
     resetStocks();
     lastStockCreationMinute = -1;
-    lastInterestMinute = -1;
+    lastExchangeRateUpdateSecond = -1;
 
     hideGameOver();
     createInitialStocks();
     updatePlayerInfo();
     renderStocks();
+}
+
+// 인생 리셋 (로컬 스토리지 초기화)
+function resetLife() {
+    if (confirm('정말로 인생을 리셋하시겠습니까?\n모든 저장된 데이터가 삭제되고 초기 상태로 돌아갑니다.')) {
+        // 로컬 스토리지 완전 초기화
+        localStorage.clear();
+
+        // 게임 상태 초기화
+        resetGameState();
+
+        // 주식 초기화
+        resetStocks();
+
+        // 타이머 변수 초기화
+        lastStockCreationMinute = -1;
+        lastExchangeRateUpdateSecond = -1;
+
+        // 게임 오버 상태면 해제
+        if (gameState.gameOver) {
+            hideGameOver();
+        }
+
+        // 초기 주식 생성
+        createInitialStocks();
+
+        // UI 업데이트
+        renderStocks();
+        updatePlayerInfo();
+
+        alert('인생이 리셋되었습니다!\n초기 자산: ₩1,000,000');
+    }
 }
 
 // 전역 함수로 노출 (HTML에서 사용하기 위해)
@@ -176,6 +297,9 @@ window.showChart = showChart;
 window.closeChart = closeChart;
 window.toggleDarkMode = toggleDarkMode;
 window.cycleFontSize = cycleFontSize;
+window.switchTab = switchTab;
+window.exchangeHandler = exchangeHandler;
+window.resetLife = resetLife;
 
 // 게임 시작
 init();

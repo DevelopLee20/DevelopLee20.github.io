@@ -13,6 +13,10 @@
         <button class="font-size-btn" id="font-size-btn" onclick="cycleFontSize()" title="폰트 크기 변경">A</button>
     </div>
 
+    <div class="reset-controls">
+        <button class="reset-btn" id="reset-btn" onclick="resetLife()" title="인생 리셋">🔄 인생 리셋</button>
+    </div>
+
     <div class="container">
         <h1>📈 주식 시뮬레이션 게임</h1>
 
@@ -22,30 +26,69 @@
                 <p id="current-time">--:--:--</p>
             </div>
             <div class="info-box">
-                <h3>시장 상태</h3>
-                <p id="market-status" class="market-closed">휴장 중</p>
+                <h3>🇰🇷 국내장</h3>
+                <p id="market-status-korea" class="market-closed">휴장 중</p>
+            </div>
+            <div class="info-box">
+                <h3>🇺🇸 미국장</h3>
+                <p id="market-status-usa" class="market-closed">휴장 중</p>
             </div>
         </div>
 
         <div class="content-grid">
             <div class="stocks-section">
-                <h2 class="section-title">📊 주식 시장</h2>
-                <div id="stock-list" class="stock-list">
-                    <!-- 주식 목록이 여기에 동적으로 추가됩니다 -->
+                <div class="market-tabs">
+                    <button id="tab-korea" class="tab-button active" onclick="window.switchTab('korea')">🇰🇷 국내 주식</button>
+                    <button id="tab-usa" class="tab-button" onclick="window.switchTab('usa')">🇺🇸 미국 주식</button>
+                </div>
+
+                <div id="korea-market" class="tab-panel active">
+                    <div id="stock-list-korea" class="stock-list">
+                        <!-- 국내 주식 목록 -->
+                    </div>
+                </div>
+                <div id="usa-market" class="tab-panel">
+                    <div id="stock-list-usa" class="stock-list">
+                        <!-- 미국 주식 목록 -->
+                    </div>
                 </div>
             </div>
 
             <div class="player-section">
                 <h2 class="section-title">💰 내 정보</h2>
 
-                <div class="player-info">
-                    <h4>💵 현금</h4>
-                    <p id="player-cash">$10000</p>
+                <div class="player-info-grid">
+                    <div class="player-info">
+                        <h4>💵 보유 원화</h4>
+                        <p id="player-cash-krw">₩0</p>
+                    </div>
+                    <div class="player-info">
+                        <h4>💵 보유 달러</h4>
+                        <p id="player-cash-usd">$0</p>
+                    </div>
                 </div>
 
                 <div class="player-info">
-                    <h4>📈 총 자산</h4>
-                    <p id="player-total">$10000</p>
+                    <h4>📈 총 자산 (원화 기준)</h4>
+                    <p id="player-total">₩0</p>
+                </div>
+
+                <div class="exchange-section">
+                    <h4>💱 환전소</h4>
+                    <p class="exchange-rate" id="exchange-rate">1 USD = 1300 KRW</p>
+                    <div class="exchange-controls">
+                        <div class="slider-container">
+                            <div class="slider-info">
+                                <div class="amount-display"><span id="exchange-amount-display">0</span> USD</div>
+                                <div class="krw-display"><span id="krw-equivalent">≈ ₩0</span></div>
+                            </div>
+                            <input type="range" id="exchange-slider" min="0" max="1000" value="0" step="1">
+                        </div>
+                        <div class="exchange-buttons">
+                            <button class="exchange-btn" onclick="window.exchangeHandler('krw_to_usd')">원화➞달러</button>
+                            <button class="exchange-btn" onclick="window.exchangeHandler('usd_to_krw')">달러➞원화</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="holdings-list">
