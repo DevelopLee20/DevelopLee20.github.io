@@ -54,8 +54,6 @@ export function renderStocks() {
                     <button class="buy-btn" onclick="window.buyStockHandler(${stock.id})" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>매수</button>
                     <button class="buy-btn" onclick="window.buyStockHandler(${stock.id}, 10)" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>10주</button>
                     <button class="buy-btn" onclick="window.buyStockHandler(${stock.id}, 100)" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>100주</button>
-                    <button class="sell-btn" onclick="window.sellStockHandler(${stock.id})" ${!gameState.holdings[stock.id] ? 'disabled' : ''}>매도</button>
-                    <button class="sell-btn" onclick="window.sellAllStockHandler(${stock.id})" ${!gameState.holdings[stock.id] ? 'disabled' : ''}>전부 매도</button>
                 </div>
             `;
             container.appendChild(div);
@@ -112,15 +110,19 @@ function updateHoldings() {
                 const formatCurrency = (amount) => stock.market === 'korea' ? Math.round(amount).toLocaleString() : amount.toFixed(2);
 
                 div.innerHTML = `
-                    <div>
+                    <div class="holding-info">
                         <div>${stock.name} x${holding.quantity}</div>
                         <div style="font-size: 0.85em; color: #666;">평균 단가: ${currencySymbol}${formatCurrency(holding.avgPrice)}</div>
                     </div>
-                    <div style="text-align: right;">
+                    <div class="holding-value">
                         <div style="font-weight: bold; color: #28a745;">${currencySymbol}${formatCurrency(value)}</div>
                         <div style="font-size: 0.85em; color: ${profitColor};">
                             ${profitSign}${currencySymbol}${formatCurrency(profitLoss)} (${profitSign}${profitPercent.toFixed(2)}%)
                         </div>
+                    </div>
+                    <div class="holding-actions">
+                        <button class="sell-btn sell-btn-small" onclick="window.sellStockHandler(${stockId})">매도</button>
+                        <button class="sell-btn sell-btn-small" onclick="window.sellAllStockHandler(${stockId})">전부</button>
                     </div>
                 `;
                 holdingsContainer.appendChild(div);

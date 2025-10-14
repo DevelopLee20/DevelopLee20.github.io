@@ -418,8 +418,31 @@ button:disabled {
     border-radius: 5px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     flex-shrink: 0;
     font-size: 0.9em;
+    gap: 8px;
+}
+
+.holding-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.holding-value {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.holding-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.sell-btn-small {
+    padding: 4px 8px;
+    font-size: 0.8em;
 }
 
 .empty-holdings {
@@ -434,6 +457,24 @@ button:disabled {
         padding: 6px;
         margin-bottom: 5px;
         font-size: 0.85em;
+        flex-wrap: wrap;
+    }
+
+    .holding-info {
+        flex: 1 1 100%;
+    }
+
+    .holding-value {
+        flex: 1;
+    }
+
+    .holding-actions {
+        flex-shrink: 0;
+    }
+
+    .sell-btn-small {
+        padding: 4px 6px;
+        font-size: 0.75em;
     }
 
     .empty-holdings {
@@ -757,6 +798,10 @@ body.dark-mode .holdings-list {
 
 body.dark-mode .holding-item {
     background: #16213e;
+}
+
+body.dark-mode .holding-info div:first-child {
+    color: #e0e0e0;
 }
 
 body.dark-mode .stock-info-clickable:hover {
