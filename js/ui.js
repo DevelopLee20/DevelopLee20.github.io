@@ -194,7 +194,6 @@ function updateLeveragePositions() {
                     <button class="sell-btn sell-btn-small" onclick="window.closeLeveragePositionHandler(${position.id})">청산</button>
                 </div>
             `;
-            holdingsContainer.appendChild(div);
             leverageContainer.appendChild(div);
         }
     });
