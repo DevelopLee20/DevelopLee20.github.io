@@ -9,6 +9,7 @@ export const gameState = {
         usd: 0
     },
     exchangeRate: 1300, // 1달러당 원화
+    prevExchangeRate: 1300, // 이전 환율 (변동 추적용)
     holdings: {}, // {stockId: {quantity, avgPrice}}
     marketStatus: {
         korea: { isOpen: false },
@@ -21,6 +22,7 @@ export const gameState = {
 export function resetGameState() {
     gameState.cash = { krw: 1000000, usd: 0 };
     gameState.exchangeRate = 1300;
+    gameState.prevExchangeRate = 1300;
     gameState.holdings = {};
     gameState.marketStatus = {
         korea: { isOpen: false },
@@ -62,8 +64,32 @@ export function getTotalAssets() {
 
 // 환율 변동
 export function updateExchangeRate() {
+    gameState.prevExchangeRate = gameState.exchangeRate;
     const change = (Math.random() - 0.49) * 0.01; // -0.5% ~ +0.5% 변동
     gameState.exchangeRate *= (1 + change);
+}
+
+// 환율 변동 방향 가져오기
+export function getExchangeRateChange() {
+    if (gameState.exchangeRate > gameState.prevExchangeRate) {
+        return 'up'; // 환율 상승 (원화 가치 하락)
+    } else if (gameState.exchangeRate < gameState.prevExchangeRate) {
+        return 'down'; // 환율 하락 (원화 가치 상승)
+    }
+    return 'same';
+}
+
+// 환전 수수료 계산
+export function calculateExchangeFee(amount, direction) {
+    if (direction === 'krw_to_usd') {
+        const usdAmount = amount / gameState.exchangeRate;
+        const fee = usdAmount * EXCHANGE_FEE;
+        return Math.floor(fee * gameState.exchangeRate); // 원화로 반환
+    } else {
+        const krwAmount = amount * gameState.exchangeRate;
+        const fee = krwAmount * EXCHANGE_FEE;
+        return Math.floor(fee); // 원화로 반환
+    }
 }
 
 // 원화 -> 달러 환전
@@ -74,10 +100,12 @@ export function exchangeKrwToUsd(krwAmount) {
     const usdToReceive = krwAmount / gameState.exchangeRate;
     const fee = usdToReceive * EXCHANGE_FEE;
     const finalUsd = usdToReceive - fee;
+    const feeInKrw = Math.floor(fee * gameState.exchangeRate);
 
     gameState.cash.krw -= krwAmount;
     gameState.cash.usd += finalUsd;
-    return { success: true };
+
+    return { success: true, fee: feeInKrw };
 }
 
 // 달러 -> 원화 환전
@@ -88,10 +116,12 @@ export function exchangeUsdToKrw(usdAmount) {
     const krwToReceive = usdAmount * gameState.exchangeRate;
     const fee = krwToReceive * EXCHANGE_FEE;
     const finalKrw = krwToReceive - fee;
+    const feeInKrw = Math.floor(fee);
 
     gameState.cash.usd -= usdAmount;
     gameState.cash.krw += finalKrw;
-    return { success: true };
+
+    return { success: true, fee: feeInKrw };
 }
 
 

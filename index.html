@@ -75,7 +75,10 @@
 
                 <div class="exchange-section">
                     <h4>💱 환전소</h4>
-                    <p class="exchange-rate" id="exchange-rate">1 USD = 1300 KRW</p>
+                    <div class="exchange-rate-display">
+                        <p class="exchange-rate" id="exchange-rate">1 USD = 1300 KRW</p>
+                        <span class="rate-change" id="rate-change"></span>
+                    </div>
                     <div class="exchange-controls">
                         <div class="slider-container">
                             <div class="slider-info">
@@ -83,6 +86,16 @@
                                 <div class="krw-display"><span id="krw-equivalent">≈ ₩0</span></div>
                             </div>
                             <input type="range" id="exchange-slider" min="0" max="1000" value="0" step="1">
+                        </div>
+                        <div class="quick-amount-buttons">
+                            <button class="quick-btn" onclick="window.setQuickAmount(0.25)">25%</button>
+                            <button class="quick-btn" onclick="window.setQuickAmount(0.5)">50%</button>
+                            <button class="quick-btn" onclick="window.setQuickAmount(0.75)">75%</button>
+                            <button class="quick-btn" onclick="window.setQuickAmount(1.0)">100%</button>
+                        </div>
+                        <div class="fee-display" id="fee-display">
+                            <span class="fee-label">환전 수수료:</span>
+                            <span class="fee-amount" id="fee-amount">₩0</span>
                         </div>
                         <div class="exchange-buttons">
                             <button class="exchange-btn" onclick="window.exchangeHandler('krw_to_usd')">원화➞달러</button>

@@ -937,12 +937,50 @@ body.dark-mode .tab-button.active {
     margin-bottom: 8px;
 }
 
+.exchange-rate-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
 .exchange-rate {
     font-size: 0.9em;
     font-weight: bold;
     color: #333;
-    margin-bottom: 10px;
-    text-align: center;
+    margin: 0;
+}
+
+.rate-change {
+    font-size: 0.85em;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #f0f0f0;
+    transition: all 0.3s;
+}
+
+.rate-change.up {
+    color: #dc3545;
+    background: #ffe5e5;
+    animation: rateUp 0.5s ease;
+}
+
+.rate-change.down {
+    color: #28a745;
+    background: #e5ffe5;
+    animation: rateDown 0.5s ease;
+}
+
+@keyframes rateUp {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes rateDown {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
 }
 
 .exchange-controls {
@@ -1004,6 +1042,55 @@ body.dark-mode .tab-button.active {
     font-weight: bold;
 }
 
+.quick-amount-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin-bottom: 8px;
+}
+
+.quick-btn {
+    background: #6c757d;
+    color: white;
+    padding: 6px 10px;
+    font-size: 0.8em;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.quick-btn:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.quick-btn:active {
+    transform: translateY(0);
+    background: #545b62;
+}
+
+.fee-display {
+    background: #f8f9fa;
+    padding: 8px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85em;
+    border: 1px solid #dee2e6;
+}
+
+.fee-label {
+    color: #666;
+    font-weight: 500;
+}
+
+.fee-amount {
+    font-weight: bold;
+    color: #dc3545;
+}
+
 .exchange-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1013,10 +1100,16 @@ body.dark-mode .tab-button.active {
 .exchange-btn {
     background: #007bff;
     color: white;
+    transition: all 0.3s;
 }
 
 .exchange-btn:hover:not(:disabled) {
     background: #0056b3;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.exchange-btn:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 /* Dark mode for new elements */
@@ -1030,6 +1123,20 @@ body.dark-mode .exchange-section h4 {
 
 body.dark-mode .exchange-rate {
     color: #e0e0e0;
+}
+
+body.dark-mode .rate-change {
+    background: #2a2a3e;
+}
+
+body.dark-mode .rate-change.up {
+    background: #3d2828;
+    color: #ff6b6b;
+}
+
+body.dark-mode .rate-change.down {
+    background: #283d28;
+    color: #51cf66;
 }
 
 body.dark-mode .slider-container input[type="range"] {
@@ -1050,6 +1157,31 @@ body.dark-mode .amount-display {
 
 body.dark-mode .krw-display {
     color: #b0b0b0;
+}
+
+body.dark-mode .quick-btn {
+    background: #495057;
+}
+
+body.dark-mode .quick-btn:hover {
+    background: #5a6268;
+}
+
+body.dark-mode .quick-btn:active {
+    background: #343a40;
+}
+
+body.dark-mode .fee-display {
+    background: #16213e;
+    border-color: #2a3a5e;
+}
+
+body.dark-mode .fee-label {
+    color: #b0b0b0;
+}
+
+body.dark-mode .fee-amount {
+    color: #ff6b6b;
 }
 
 /* 알림 토스트 */

@@ -1,5 +1,5 @@
 // 메인 게임 로직
-import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw } from './game-state.js';
+import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee } from './game-state.js';
 import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount } from './stock.js';
 import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast } from './ui.js';
 import { showChart, closeChart } from './chart.js';
@@ -141,12 +141,17 @@ function initExchangeSlider() {
     const slider = document.getElementById('exchange-slider');
     const amountDisplay = document.getElementById('exchange-amount-display');
     const krwEquivalent = document.getElementById('krw-equivalent');
+    const feeAmount = document.getElementById('fee-amount');
 
     slider.addEventListener('input', function() {
         const usdAmount = parseInt(this.value);
         amountDisplay.textContent = usdAmount;
         const krwAmount = Math.floor(usdAmount * gameState.exchangeRate);
         krwEquivalent.textContent = `≈ ₩${krwAmount.toLocaleString()}`;
+
+        // 수수료 표시 (기본적으로 원화→달러 수수료 표시)
+        const fee = calculateExchangeFee(krwAmount, 'krw_to_usd');
+        feeAmount.textContent = `₩${fee.toLocaleString()}`;
     });
 
     // 초기값 설정
@@ -264,6 +269,15 @@ function restartGameHandler() {
     renderStocks();
 }
 
+// 빠른 금액 선택 버튼
+function setQuickAmount(percentage) {
+    const slider = document.getElementById('exchange-slider');
+    const maxValue = parseInt(slider.max);
+    const quickAmount = Math.floor(maxValue * percentage);
+    slider.value = quickAmount;
+    slider.dispatchEvent(new Event('input'));
+}
+
 // 인생 리셋 (로컬 스토리지 초기화)
 function resetLife() {
     if (confirm('정말로 인생을 리셋하시겠습니까?\n모든 저장된 데이터가 삭제되고 초기 상태로 돌아갑니다.')) {
@@ -307,6 +321,7 @@ window.toggleDarkMode = toggleDarkMode;
 window.cycleFontSize = cycleFontSize;
 window.switchTab = switchTab;
 window.exchangeHandler = exchangeHandler;
+window.setQuickAmount = setQuickAmount;
 window.resetLife = resetLife;
 
 // 게임 시작

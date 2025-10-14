@@ -1,5 +1,5 @@
 // UI 렌더링 및 업데이트
-import { gameState, getTotalAssets } from './game-state.js';
+import { gameState, getTotalAssets, getExchangeRateChange } from './game-state.js';
 import { markets, findStock } from './stock.js';
 
 // 시간 표시 업데이트
@@ -67,8 +67,26 @@ export function updatePlayerInfo() {
     document.getElementById('player-cash-usd').textContent = `$${gameState.cash.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     document.getElementById('player-total').textContent = `₩${Math.floor(getTotalAssets()).toLocaleString()}`;
     document.getElementById('exchange-rate').textContent = `1 USD = ${gameState.exchangeRate.toFixed(2)} KRW`;
+    updateExchangeRateDisplay();
     updateHoldings();
     updateExchangeSliderDisplay();
+}
+
+// 환율 변동 표시 업데이트
+function updateExchangeRateDisplay() {
+    const rateChangeElement = document.getElementById('rate-change');
+    const change = getExchangeRateChange();
+
+    if (change === 'up') {
+        rateChangeElement.textContent = '▲';
+        rateChangeElement.className = 'rate-change up';
+    } else if (change === 'down') {
+        rateChangeElement.textContent = '▼';
+        rateChangeElement.className = 'rate-change down';
+    } else {
+        rateChangeElement.textContent = '';
+        rateChangeElement.className = 'rate-change';
+    }
 }
 
 // 환전 슬라이더 디스플레이 업데이트
