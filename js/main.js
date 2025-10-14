@@ -1,7 +1,7 @@
 // 메인 게임 로직
-import { gameState, resetGameState, getTotalAssets, takeLoan, repayLoan, chargeInterest, openMarket, closeMarket, endGame } from './game-state.js';
+import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState } from './game-state.js';
 import { stocks, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount } from './stock.js';
-import { updateTimeDisplay, updateMarketStatus, updateInterestTimer, renderStocks, updatePlayerInfo, showGameOver, hideGameOver } from './ui.js';
+import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver } from './ui.js';
 import { showChart, closeChart } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
 
@@ -12,13 +12,28 @@ let lastInterestMinute = -1;
 
 // 초기화
 function init() {
-    updateTime();
-    setInterval(updateTime, 1000);
-    createInitialStocks();
-    renderStocks();
-    updatePlayerInfo();
+    // 1. 설정 먼저 불러오기
     loadDarkMode();
     loadFontSize();
+
+    // 2. 저장된 게임 데이터 불러오기 또는 새 게임 시작
+    if (!loadGameState()) {
+        createInitialStocks();
+        console.log('새 게임을 시작합니다.');
+    }
+
+    // 3. 현재 시간에 맞춰 게임 상태 동기화 (중요: 첫 렌더링 전)
+    updateTime();
+
+    // 4. 동기화된 상태로 첫 화면 렌더링
+    renderStocks();
+    updatePlayerInfo();
+
+    // 5. 1초마다 게임 루프 실행
+    setInterval(updateTime, 1000);
+
+    // 6. 페이지 나가기 전 자동 저장 설정
+    window.addEventListener('beforeunload', saveGameState);
 }
 
 // 시간 업데이트 및 게임 로직
@@ -39,19 +54,6 @@ function updateTime() {
         renderStocks();
         lastStockCreationMinute = minutes;
     }
-
-    // 이자 납부 체크 (10분 간격)
-    if (minutes % 10 === 0 && minutes !== lastInterestMinute) {
-        handleInterestCharge();
-        lastInterestMinute = minutes;
-    }
-
-    // 이자 납부 타이머 표시
-    const minutesUntilInterest = 10 - (minutes % 10);
-    const secondsUntilInterest = 60 - parseInt(seconds);
-    const displayMinutes = secondsUntilInterest === 60 ? minutesUntilInterest : minutesUntilInterest - 1;
-    const displaySeconds = secondsUntilInterest === 60 ? 0 : secondsUntilInterest;
-    updateInterestTimer(displayMinutes, displaySeconds);
 
     // 자산 업데이트
     updatePlayerInfo();
@@ -103,16 +105,7 @@ function handleMarketClose() {
         clearInterval(priceUpdateInterval);
         priceUpdateInterval = null;
     }
-}
-
-// 이자 부과 처리
-function handleInterestCharge() {
-    chargeInterest();
-    updatePlayerInfo();
-
-    if (getTotalAssets(stocks) <= 0) {
-        handleGameOver('대출 이자로 인해 파산했습니다!');
-    }
+    renderStocks(); // 휴장 시 버튼을 비활성화하기 위해 주식 목록을 다시 렌더링
 }
 
 // 주식 매수 핸들러
@@ -141,23 +134,6 @@ function sellAllStockHandler(stockId) {
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
-    }
-}
-
-// 대출 받기 핸들러
-function takeLoanHandler() {
-    if (takeLoan()) {
-        updatePlayerInfo();
-    }
-}
-
-// 대출 갚기 핸들러
-function repayLoanHandler() {
-    const result = repayLoan();
-    if (!result.success && result.message) {
-        alert(result.message);
-    } else if (result.success) {
-        updatePlayerInfo();
     }
 }
 
@@ -195,8 +171,6 @@ function restartGameHandler() {
 window.buyStockHandler = buyStockHandler;
 window.sellStockHandler = sellStockHandler;
 window.sellAllStockHandler = sellAllStockHandler;
-window.takeLoan = takeLoanHandler;
-window.repayLoan = repayLoanHandler;
 window.restartGame = restartGameHandler;
 window.showChart = showChart;
 window.closeChart = closeChart;

@@ -19,11 +19,7 @@ export function updateMarketStatus(isOpen) {
     }
 }
 
-// 이자 납부 타이머 표시
-export function updateInterestTimer(minutes, seconds) {
-    document.getElementById('interest-timer').textContent =
-        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
+
 
 // 주식 목록 렌더링
 export function renderStocks() {
@@ -76,15 +72,10 @@ export function renderStocks() {
 
 // 플레이어 정보 업데이트
 export function updatePlayerInfo() {
-    document.getElementById('player-cash').textContent = `$${gameState.cash.toFixed(2)}`;
-    document.getElementById('player-loan').textContent = `$${gameState.loan.toFixed(2)}`;
-
-    // 내야할 이자 표시
-    const interest = gameState.loan * 0.1;
-    document.getElementById('player-interest').textContent = `$${interest.toFixed(2)}`;
+    document.getElementById('player-cash').textContent = `${gameState.cash.toFixed(2)}`;
 
     const totalAssets = getTotalAssets(stocks);
-    document.getElementById('player-total').textContent = `$${totalAssets.toFixed(2)}`;
+    document.getElementById('player-total').textContent = `${totalAssets.toFixed(2)}`;
 
     // 보유 주식 표시
     updateHoldings();
