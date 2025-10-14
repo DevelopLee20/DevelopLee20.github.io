@@ -151,3 +151,16 @@ export function switchTab(marketId) {
     document.getElementById(`tab-${marketId}`).classList.add('active');
     document.getElementById(`${marketId}-market`).classList.add('active');
 }
+
+// 알림 토스트 표시
+export function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // 2초 후 제거 (0.4초 슬라이드 다운 + 1.2초 유지 + 0.4초 페이드 아웃)
+    setTimeout(() => {
+        toast.remove();
+    }, 2000);
+}

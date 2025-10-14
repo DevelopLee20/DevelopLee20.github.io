@@ -123,7 +123,7 @@ export function buyStock(stockId, quantity, gameState) {
         holding.quantity += quantity;
         holding.avgPrice = (totalPrevCost + totalCost) / holding.quantity;
 
-        return { success: true };
+        return { success: true, stockName: stock.name };
     } else {
         return { success: false, message: `보유 ${currencyName}가 부족합니다!` };
     }
@@ -144,7 +144,7 @@ export function sellStock(stockId, gameState) {
         if (gameState.holdings[stockId].quantity === 0) {
             delete gameState.holdings[stockId];
         }
-        return { success: true };
+        return { success: true, stockName: stock.name };
     }
     return { success: false };
 }
@@ -162,7 +162,7 @@ export function sellAllStock(stockId, gameState) {
         const currency = stock.market === 'korea' ? 'krw' : 'usd';
         gameState.cash[currency] += revenue;
         delete gameState.holdings[stockId];
-        return { success: true };
+        return { success: true, stockName: stock.name, quantity: quantity };
     }
     return { success: false };
 }

@@ -1,7 +1,7 @@
 // 메인 게임 로직
 import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw } from './game-state.js';
 import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount } from './stock.js';
-import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab } from './ui.js';
+import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast } from './ui.js';
 import { showChart, closeChart } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
 
@@ -172,18 +172,22 @@ function exchangeHandler(direction) {
     const usdAmount = parseInt(slider.value);
 
     if (usdAmount <= 0) {
-        alert('환전할 금액을 선택하세요.');
+        showToast('환전할 금액을 선택하세요.', 'warning');
         return;
     }
 
     let result;
+    let message;
     if (direction === 'krw_to_usd') {
         // 원화를 달러로: 필요한 원화 = usdAmount * 환율
         const krwNeeded = usdAmount * gameState.exchangeRate;
         result = exchangeKrwToUsd(krwNeeded);
+        message = `$${usdAmount} 환전 완료! (원화→달러)`;
     } else {
         // 달러를 원화로
         result = exchangeUsdToKrw(usdAmount);
+        const krwReceived = Math.floor(usdAmount * gameState.exchangeRate * 0.995);
+        message = `₩${krwReceived.toLocaleString()} 환전 완료! (달러→원화)`;
     }
 
     if (result.success) {
@@ -191,8 +195,9 @@ function exchangeHandler(direction) {
         slider.dispatchEvent(new Event('input'));
         updatePlayerInfo();
         updateSliderMax();
+        showToast(message);
     } else {
-        alert(result.message);
+        showToast(result.message, 'error');
     }
 }
 
@@ -202,8 +207,9 @@ function buyStockHandler(stockId, quantity = 1) {
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
+        showToast(`${result.stockName} ${quantity}주 매수 완료!`);
     } else if (result.message) {
-        alert(result.message);
+        showToast(result.message, 'error');
     }
 }
 
@@ -213,6 +219,7 @@ function sellStockHandler(stockId) {
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
+        showToast(`${result.stockName} 1주 매도 완료!`);
     }
 }
 
@@ -222,6 +229,7 @@ function sellAllStockHandler(stockId) {
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
+        showToast(`${result.stockName} ${result.quantity}주 전량 매도 완료!`);
     }
 }
 
@@ -284,7 +292,7 @@ function resetLife() {
         renderStocks();
         updatePlayerInfo();
 
-        alert('인생이 리셋되었습니다!\n초기 자산: ₩1,000,000');
+        showToast('인생이 리셋되었습니다! 초기 자산: ₩1,000,000');
     }
 }
 

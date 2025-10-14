@@ -1007,4 +1007,70 @@ body.dark-mode .krw-display {
     color: #b0b0b0;
 }
 
+/* 알림 토스트 */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #28a745;
+    color: white;
+    padding: 15px 30px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1em;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 2000;
+    animation: toastSlideIn 0.4s ease-out forwards, toastFadeOut 0.4s ease-in 1.6s forwards;
+}
+
+@keyframes toastSlideIn {
+    0% {
+        top: -50px;
+        opacity: 0;
+    }
+    100% {
+        top: 20px;
+        opacity: 1;
+    }
+}
+
+@keyframes toastFadeOut {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+body.dark-mode .toast-notification {
+    background: #2d8653;
+}
+
+.toast-error {
+    background: #dc3545 !important;
+}
+
+body.dark-mode .toast-error {
+    background: #c82333 !important;
+}
+
+.toast-warning {
+    background: #ffc107 !important;
+    color: #333 !important;
+}
+
+body.dark-mode .toast-warning {
+    background: #e0a800 !important;
+}
+
+@media (max-width: 768px) {
+    .toast-notification {
+        font-size: 0.9em;
+        padding: 12px 20px;
+        top: 10px;
+    }
+}
+
 
