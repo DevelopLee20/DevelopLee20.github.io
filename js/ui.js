@@ -2,7 +2,7 @@
 import { gameState, getTotalAssets, getExchangeRateChange } from './game-state.js';
 import { markets, findStock } from './stock.js';
 import { getOrderBookDepth, getPlayerPendingOrders, getRecentTrades, cancelOrder } from './order-book.js';
-import { getAITradersInfo } from './ai-trader-manager.js';
+
 
 // 현재 호가창이 열려있는 주식 ID
 let currentOrderBookStockId = null;
@@ -242,6 +242,13 @@ export function openOrderBook(stockId) {
     const marketStatus = gameState.marketStatus[stock.market]?.isOpen ? '개장 중' : '휴장 중';
     document.getElementById('order-book-stock-name').textContent = `${stock.name} - 호가창 (${marketStatus})`;
 
+    const orderPriceInput = document.getElementById('order-price');
+    if (stock.market === 'korea') {
+        orderPriceInput.step = '100';
+    } else {
+        orderPriceInput.step = '0.01';
+    }
+
     // 초기 렌더링
     renderOrderBook();
 
@@ -280,12 +287,7 @@ export function renderOrderBook() {
 
     const marketId = stock.market;
     const currencySymbol = stock.market === 'korea' ? '₩' : '$';
-    const formatPrice = (price) => stock.market === 'korea' ? Math.round(price).toLocaleString() : price.toFixed(2);
-
-    // AI 트레이더 정보
-    const aiInfo = getAITradersInfo(currentOrderBookStockId, marketId);
-    console.log('AI 트레이더 정보:', { stockId: currentOrderBookStockId, marketId, aiInfo });
-    document.getElementById('ai-traders-count').textContent = `AI 트레이더: ${aiInfo.count}명`;
+    const formatPrice = (price) => stock.market === 'korea' ? (Math.round(price / 100) * 100).toLocaleString() : price.toFixed(2);
 
     // 현재가 표시
     document.getElementById('order-book-current-price').textContent = `${currencySymbol}${formatPrice(stock.price)}`;
