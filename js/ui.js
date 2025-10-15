@@ -1,6 +1,11 @@
 // UI 렌더링 및 업데이트
 import { gameState, getTotalAssets, getExchangeRateChange } from './game-state.js';
 import { markets, findStock } from './stock.js';
+import { getOrderBookDepth, getPlayerPendingOrders, getRecentTrades, cancelOrder } from './order-book.js';
+import { getAITradersInfo } from './ai-trader-manager.js';
+
+// 현재 호가창이 열려있는 주식 ID
+let currentOrderBookStockId = null;
 
 // 시간 표시 업데이트
 export function updateTimeDisplay(timeString) {
@@ -51,6 +56,7 @@ export function renderStocks() {
                     </div>
                 </div>
                 <div class="stock-actions">
+                    <button class="order-book-btn" onclick="window.openOrderBook(${stock.id})" ${stock.delisted ? 'disabled' : ''}>호가</button>
                     <button class="buy-btn" onclick="window.buyStockHandler(${stock.id})" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>매수</button>
                     <button class="buy-btn" onclick="window.buyStockHandler(${stock.id}, 10)" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>10주</button>
                     <button class="buy-btn" onclick="window.buyStockHandler(${stock.id}, 100)" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>100주</button>
@@ -219,4 +225,229 @@ export function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.remove();
     }, 2000);
+}
+
+// 호가창 열기
+export function openOrderBook(stockId) {
+    const stock = findStock(stockId);
+    if (!stock || stock.delisted) return;
+
+    currentOrderBookStockId = stockId;
+
+    // 모달 표시
+    const modal = document.getElementById('order-book-modal');
+    modal.classList.remove('hidden');
+
+    // 주식 이름 설정
+    const marketStatus = gameState.marketStatus[stock.market]?.isOpen ? '개장 중' : '휴장 중';
+    document.getElementById('order-book-stock-name').textContent = `${stock.name} - 호가창 (${marketStatus})`;
+
+    // 초기 렌더링
+    renderOrderBook();
+
+    // 주문 타입 초기화 (매수)
+    switchOrderType('buy');
+
+    // 가격 입력 필드 활성화 (지정가 기본)
+    document.querySelector('input[name="order-method"][value="limit"]').checked = true;
+    document.getElementById('order-price').disabled = false;
+
+    // 휴장 중이면 주문 버튼 비활성화
+    const isMarketOpen = gameState.marketStatus[stock.market]?.isOpen;
+    const submitBtn = document.getElementById('order-submit-btn');
+    if (!isMarketOpen) {
+        submitBtn.disabled = true;
+        submitBtn.title = '시장이 휴장 중입니다';
+    } else {
+        submitBtn.disabled = false;
+        submitBtn.title = '';
+    }
+}
+
+// 호가창 닫기
+export function closeOrderBook() {
+    const modal = document.getElementById('order-book-modal');
+    modal.classList.add('hidden');
+    currentOrderBookStockId = null;
+}
+
+// 호가창 렌더링
+export function renderOrderBook() {
+    if (!currentOrderBookStockId) return;
+
+    const stock = findStock(currentOrderBookStockId);
+    if (!stock) return;
+
+    const marketId = stock.market;
+    const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+    const formatPrice = (price) => stock.market === 'korea' ? Math.round(price).toLocaleString() : price.toFixed(2);
+
+    // AI 트레이더 정보
+    const aiInfo = getAITradersInfo(currentOrderBookStockId, marketId);
+    console.log('AI 트레이더 정보:', { stockId: currentOrderBookStockId, marketId, aiInfo });
+    document.getElementById('ai-traders-count').textContent = `AI 트레이더: ${aiInfo.count}명`;
+
+    // 현재가 표시
+    document.getElementById('order-book-current-price').textContent = `${currencySymbol}${formatPrice(stock.price)}`;
+
+    const priceChange = stock.price - stock.prevPrice;
+    const changePercent = stock.prevPrice > 0 ? ((priceChange / stock.prevPrice) * 100).toFixed(2) : 0;
+    const changeElement = document.getElementById('order-book-price-change');
+    if (priceChange > 0) {
+        changeElement.textContent = `▲ ${changePercent}%`;
+        changeElement.style.color = '#dc3545';
+    } else if (priceChange < 0) {
+        changeElement.textContent = `▼ ${Math.abs(changePercent)}%`;
+        changeElement.style.color = '#0066ff';
+    } else {
+        changeElement.textContent = '0%';
+        changeElement.style.color = '#666';
+    }
+
+    // 호가 정보 가져오기
+    const orderBookDepth = getOrderBookDepth(currentOrderBookStockId, marketId, 5);
+
+    // 매도 호가 렌더링 (높은 가격부터)
+    const sellOrdersList = document.getElementById('sell-orders-list');
+    sellOrdersList.innerHTML = '';
+
+    if (orderBookDepth.sellOrders.length === 0) {
+        sellOrdersList.innerHTML = '<div class="no-orders" style="padding: 10px; text-align: center; color: #999;">매도 호가 없음</div>';
+    } else {
+        // 역순으로 표시 (높은 가격이 위로)
+        orderBookDepth.sellOrders.slice().reverse().forEach(order => {
+            const div = document.createElement('div');
+            div.className = 'order-row sell';
+            div.innerHTML = `
+                <span>${currencySymbol}${formatPrice(order.price)}</span>
+                <span>${order.quantity}</span>
+            `;
+            sellOrdersList.appendChild(div);
+        });
+    }
+
+    // 매수 호가 렌더링 (높은 가격부터)
+    const buyOrdersList = document.getElementById('buy-orders-list');
+    buyOrdersList.innerHTML = '';
+
+    if (orderBookDepth.buyOrders.length === 0) {
+        buyOrdersList.innerHTML = '<div class="no-orders" style="padding: 10px; text-align: center; color: #999;">매수 호가 없음</div>';
+    } else {
+        orderBookDepth.buyOrders.forEach(order => {
+            const div = document.createElement('div');
+            div.className = 'order-row buy';
+            div.innerHTML = `
+                <span>${currencySymbol}${formatPrice(order.price)}</span>
+                <span>${order.quantity}</span>
+            `;
+            buyOrdersList.appendChild(div);
+        });
+    }
+
+    // 미체결 주문 렌더링
+    renderPendingOrders(marketId, currencySymbol, formatPrice);
+
+    // 최근 체결 내역 렌더링
+    renderRecentTrades(marketId, currencySymbol, formatPrice);
+}
+
+// 미체결 주문 렌더링
+function renderPendingOrders(marketId, currencySymbol, formatPrice) {
+    const pendingOrdersList = document.getElementById('pending-orders-list');
+    const pendingOrders = getPlayerPendingOrders(marketId).filter(order => order.stockId === currentOrderBookStockId);
+
+    if (pendingOrders.length === 0) {
+        pendingOrdersList.innerHTML = '<p class="no-orders">미체결 주문이 없습니다</p>';
+    } else {
+        pendingOrdersList.innerHTML = '';
+        pendingOrders.forEach(order => {
+            const stock = findStock(order.stockId);
+            const div = document.createElement('div');
+            div.className = `pending-order-item ${order.type}`;
+            div.innerHTML = `
+                <div>
+                    <strong>${order.type === 'buy' ? '매수' : '매도'}</strong>
+                    ${order.orderType === 'limit' ? '지정가' : '시장가'}
+                    ${order.orderType === 'limit' ? `${currencySymbol}${formatPrice(order.price)}` : ''}
+                    × ${order.remainingQuantity}주
+                </div>
+                <button class="cancel-order-btn" onclick="window.cancelOrderHandler('${order.id}')">취소</button>
+            `;
+            pendingOrdersList.appendChild(div);
+        });
+    }
+}
+
+// 최근 체결 내역 렌더링
+function renderRecentTrades(marketId, currencySymbol, formatPrice) {
+    const recentTradesList = document.getElementById('recent-trades-list');
+    const recentTrades = getRecentTrades(currentOrderBookStockId, marketId, 5);
+
+    if (recentTrades.length === 0) {
+        recentTradesList.innerHTML = '<p class="no-trades">체결 내역이 없습니다</p>';
+    } else {
+        recentTradesList.innerHTML = '';
+        recentTrades.forEach(trade => {
+            const div = document.createElement('div');
+            const isBuy = trade.buyUserId === 'player';
+            const isSell = trade.sellUserId === 'player';
+            const tradeType = isBuy ? 'buy' : isSell ? 'sell' : '';
+
+            div.className = `trade-item ${tradeType}`;
+            div.innerHTML = `
+                <div>
+                    <strong>${isBuy ? '매수' : isSell ? '매도' : 'AI'}</strong>
+                    ${currencySymbol}${formatPrice(trade.price)} × ${trade.quantity}주
+                </div>
+                <div style="font-size: 0.8em; color: #999;">
+                    ${new Date(trade.timestamp).toLocaleTimeString()}
+                </div>
+            `;
+            recentTradesList.appendChild(div);
+        });
+    }
+}
+
+// 주문 타입 전환 (매수/매도)
+export function switchOrderType(type) {
+    const buyTab = document.getElementById('buy-tab');
+    const sellTab = document.getElementById('sell-tab');
+    const submitBtn = document.getElementById('order-submit-btn');
+
+    if (type === 'buy') {
+        buyTab.classList.add('active');
+        sellTab.classList.remove('active');
+        submitBtn.textContent = '매수 주문';
+        submitBtn.classList.remove('sell-mode');
+    } else {
+        buyTab.classList.remove('active');
+        sellTab.classList.add('active');
+        submitBtn.textContent = '매도 주문';
+        submitBtn.classList.add('sell-mode');
+    }
+}
+
+// 주문 방식 변경 시 가격 입력 필드 활성화/비활성화
+export function onOrderMethodChange() {
+    const orderMethod = document.querySelector('input[name="order-method"]:checked').value;
+    const priceInput = document.getElementById('order-price');
+
+    if (orderMethod === 'market') {
+        priceInput.disabled = true;
+        priceInput.value = '';
+    } else {
+        priceInput.disabled = false;
+    }
+}
+
+// 호가창 실시간 업데이트 (main.js에서 호출)
+export function updateOrderBookIfOpen() {
+    if (currentOrderBookStockId !== null) {
+        renderOrderBook();
+    }
+}
+
+// 현재 호가창 주식 ID getter
+export function getCurrentOrderBookStockId() {
+    return currentOrderBookStockId;
 }

@@ -1,9 +1,11 @@
 // 메인 게임 로직
 import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee } from './game-state.js';
 import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock, buyStockWithLeverage, closeLeveragePosition, checkLiquidations } from './stock.js';
-import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast } from './ui.js';
+import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast, openOrderBook, closeOrderBook, switchOrderType, onOrderMethodChange, updateOrderBookIfOpen, getCurrentOrderBookStockId } from './ui.js';
 import { showChart, closeChart } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
+import { updateAllAITraders, initializeMarketAITraders, resetAITraders, aiTraderPool } from './ai-trader-manager.js';
+import { createOrder, addOrderToBook, matchOrders, cancelOrder, resetOrderBook } from './order-book.js';
 
 // 타이머 관련
 const priceUpdateIntervals = {
@@ -69,7 +71,7 @@ function updateTime() {
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
 
-    updateTimeDisplay(`${String(now.getHours()).padStart(2, '0')}:${minutes}:${String(seconds).padStart(2, '0')}`);
+    updateTimeDisplay(`${String(now.getHours()).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
     checkAllMarketStatus(minutes);
 
     // 5초마다 환율 변동
@@ -108,26 +110,46 @@ function checkAllMarketStatus(minutes) {
 
 // 시장 개장 처리
 function handleMarketOpen(marketId) {
+    console.log(`시장 개장: ${marketId}`);
     openMarket(marketId);
     updateMarketStatus(marketId, true);
 
     if (getActiveStocksCount(marketId) < 10) {
         createNewStock(marketId);
     }
+
+    // AI 트레이더 초기화
+    console.log(`AI 트레이더 초기화 시작: ${marketId}`);
+    initializeMarketAITraders(marketId);
+    console.log(`AI 트레이더 초기화 완료: ${marketId}`);
+
     renderStocks();
 
     if (priceUpdateIntervals[marketId]) clearInterval(priceUpdateIntervals[marketId]);
     priceUpdateIntervals[marketId] = setInterval(() => {
+        // 1. AI 트레이더 활동 업데이트
+        updateAllAITraders(marketId);
+
+        // 2. 모든 주식의 주문 매칭
+        markets[marketId].forEach(stock => {
+            if (!stock.delisted) {
+                matchOrders(stock.id, marketId, stock);
+            }
+        });
+
+        // 3. 주가 업데이트
         updateStockPrices(marketId);
 
-        // 레버리지 청산 체크
+        // 4. 레버리지 청산 체크
         const liquidatedPositions = checkLiquidations(gameState);
         liquidatedPositions.forEach(pos => {
             showToast(`${pos.stockName} ${pos.leverage}x 레버리지 포지션이 청산되었습니다!`, 'error');
         });
 
+        // 5. UI 업데이트
         renderStocks();
         updatePlayerInfo();
+        updateOrderBookIfOpen(); // 호가창이 열려있으면 업데이트
     }, 2000);
 }
 
@@ -296,6 +318,8 @@ function handleGameOver(message) {
 function restartGameHandler() {
     resetGameState();
     resetStocks();
+    resetAITraders();
+    resetOrderBook();
     lastStockCreationMinute = -1;
     lastExchangeRateUpdateSecond = -1;
 
@@ -318,6 +342,12 @@ function resetLife() {
         // 주식 초기화
         resetStocks();
 
+        // AI 트레이더 초기화
+        resetAITraders();
+
+        // 주문장 초기화
+        resetOrderBook();
+
         // 타이머 변수 초기화
         lastStockCreationMinute = -1;
         lastExchangeRateUpdateSecond = -1;
@@ -338,6 +368,113 @@ function resetLife() {
     }
 }
 
+// 주문 제출 핸들러
+function submitOrder() {
+    if (!getCurrentOrderBookStockId()) return;
+
+    const stock = findStock(getCurrentOrderBookStockId());
+    if (!stock) return;
+
+    const orderType = document.getElementById('buy-tab').classList.contains('active') ? 'buy' : 'sell';
+    const orderMethod = document.querySelector('input[name="order-method"]:checked').value;
+    const priceInput = document.getElementById('order-price');
+    const quantityInput = document.getElementById('order-quantity');
+
+    const quantity = parseInt(quantityInput.value);
+    if (!quantity || quantity <= 0) {
+        showToast('수량을 입력하세요.', 'error');
+        return;
+    }
+
+    let price = null;
+    if (orderMethod === 'limit') {
+        price = parseFloat(priceInput.value);
+        if (!price || price <= 0) {
+            showToast('가격을 입력하세요.', 'error');
+            return;
+        }
+    } else {
+        // 시장가: 현재가 기준으로 설정
+        price = orderType === 'buy' ? stock.price * 1.01 : stock.price * 0.99;
+    }
+
+    const currency = stock.market === 'korea' ? 'krw' : 'usd';
+    const totalCost = price * quantity;
+
+    // 자금 확인
+    if (orderType === 'buy') {
+        if (gameState.cash[currency] < totalCost) {
+            const currencyName = currency === 'krw' ? '원화' : '달러';
+            showToast(`${currencyName}가 부족합니다!`, 'error');
+            return;
+        }
+    } else {
+        // 매도: 보유 주식 확인
+        const holding = gameState.holdings[stock.id];
+        if (!holding || holding.quantity < quantity) {
+            showToast('보유 주식이 부족합니다!', 'error');
+            return;
+        }
+    }
+
+    // 주문 생성
+    const order = createOrder(stock.id, stock.market, orderType, orderMethod, price, quantity, 'player');
+    addOrderToBook(order, stock.market);
+
+    // 즉시 매칭 시도
+    matchOrders(stock.id, stock.market, stock);
+
+    // 체결 확인
+    if (order.status === 'filled') {
+        // 완전 체결
+        if (orderType === 'buy') {
+            // 매수: 자금 차감, 주식 추가
+            gameState.cash[currency] -= totalCost;
+            if (!gameState.holdings[stock.id]) {
+                gameState.holdings[stock.id] = { quantity: 0, avgPrice: 0 };
+            }
+            const holding = gameState.holdings[stock.id];
+            const totalPrevCost = holding.avgPrice * holding.quantity;
+            holding.quantity += quantity;
+            holding.avgPrice = (totalPrevCost + totalCost) / holding.quantity;
+        } else {
+            // 매도: 주식 차감, 자금 증가
+            const revenue = price * quantity * 0.99; // 1% 수수료
+            gameState.cash[currency] += revenue;
+            gameState.holdings[stock.id].quantity -= quantity;
+            if (gameState.holdings[stock.id].quantity === 0) {
+                delete gameState.holdings[stock.id];
+            }
+        }
+        showToast(`${orderMethod === 'limit' ? '지정가' : '시장가'} ${orderType === 'buy' ? '매수' : '매도'} ${quantity}주 체결 완료!`);
+    } else if (order.status === 'partial') {
+        showToast(`부분 체결: ${quantity - order.remainingQuantity}/${quantity}주`, 'warning');
+    } else {
+        showToast(`주문 등록 완료: ${orderMethod === 'limit' ? '지정가' : '시장가'} ${orderType === 'buy' ? '매수' : '매도'} ${quantity}주`);
+    }
+
+    // 입력 필드 초기화
+    quantityInput.value = '1';
+    if (orderMethod === 'limit') {
+        priceInput.value = '';
+    }
+
+    // UI 업데이트
+    updatePlayerInfo();
+    updateOrderBookIfOpen();
+}
+
+// 주문 취소 핸들러
+function cancelOrderHandler(orderId) {
+    const result = cancelOrder(orderId, getCurrentOrderBookStockId() ? findStock(getCurrentOrderBookStockId()).market : 'korea');
+    if (result.success) {
+        showToast('주문이 취소되었습니다.');
+        updateOrderBookIfOpen();
+    } else {
+        showToast('주문 취소에 실패했습니다.', 'error');
+    }
+}
+
 // 전역 함수로 노출 (HTML에서 사용하기 위해)
 window.buyStockHandler = buyStockHandler;
 window.sellStockHandler = sellStockHandler;
@@ -351,6 +488,21 @@ window.cycleFontSize = cycleFontSize;
 window.switchTab = switchTab;
 window.exchangeHandler = exchangeHandler;
 window.resetLife = resetLife;
+window.openOrderBook = openOrderBook;
+window.closeOrderBook = closeOrderBook;
+window.submitOrder = submitOrder;
+window.switchOrderType = switchOrderType;
+window.cancelOrderHandler = cancelOrderHandler;
+window.onOrderMethodChange = onOrderMethodChange;
+
+// 디버그용: AI 트레이더 풀 노출
+window.aiTraderPool = aiTraderPool;
 
 // 게임 시작
+console.log('main.js 로드 완료');
+console.log('전역 함수 확인:', {
+    buyStockHandler: typeof window.buyStockHandler,
+    openOrderBook: typeof window.openOrderBook,
+    exchangeHandler: typeof window.exchangeHandler
+});
 init();

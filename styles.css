@@ -1780,3 +1780,473 @@ body.dark-mode .liquidation-warning {
 }
 
 
+
+/* 호가창 모달 스타일 */
+.order-book-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.order-book-content {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.order-book-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.order-book-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+}
+
+.order-book-close {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.order-book-close:hover {
+    background: #c82333;
+}
+
+.ai-traders-info {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.ai-traders-info h4 {
+    margin: 0 0 5px 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.ai-traders-info p {
+    margin: 0;
+    font-size: 0.85em;
+    color: #333;
+}
+
+.order-book-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.sell-orders-section,
+.buy-orders-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.order-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 8px 12px;
+    font-weight: bold;
+    font-size: 0.85em;
+}
+
+.sell-header {
+    background: #ffe5e5;
+    color: #dc3545;
+}
+
+.buy-header {
+    background: #e5ffe5;
+    color: #28a745;
+}
+
+.header-price {
+    text-align: left;
+}
+
+.header-quantity {
+    text-align: right;
+}
+
+.orders-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.order-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 6px 12px;
+    font-size: 0.9em;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.order-row:last-child {
+    border-bottom: none;
+}
+
+.order-row.sell {
+    color: #dc3545;
+}
+
+.order-row.buy {
+    color: #28a745;
+}
+
+.order-row span:first-child {
+    text-align: left;
+    font-weight: bold;
+}
+
+.order-row span:last-child {
+    text-align: right;
+}
+
+.current-price-section {
+    background: #667eea;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    color: white;
+}
+
+.current-price-display {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.current-price-label {
+    font-size: 0.8em;
+    opacity: 0.9;
+}
+
+.current-price-value {
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+.current-price-change {
+    font-size: 0.85em;
+}
+
+.order-input-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.order-type-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.order-tab {
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    background: white;
+    color: #666;
+    transition: all 0.3s;
+}
+
+.order-tab.active {
+    background: #667eea;
+    color: white;
+}
+
+.order-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.order-method {
+    display: flex;
+    gap: 15px;
+}
+
+.order-method-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.order-method-label input[type="radio"] {
+    cursor: pointer;
+}
+
+.order-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.order-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.order-input-group label {
+    font-size: 0.85em;
+    font-weight: bold;
+    color: #666;
+}
+
+.order-input-group input {
+    padding: 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.95em;
+}
+
+.order-submit-btn {
+    background: #28a745;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+    transition: all 0.3s;
+}
+
+.order-submit-btn:hover {
+    background: #218838;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.order-submit-btn.sell-mode {
+    background: #dc3545;
+}
+
+.order-submit-btn.sell-mode:hover {
+    background: #c82333;
+}
+
+.pending-orders-section,
+.recent-trades-section {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.pending-orders-section h4,
+.recent-trades-section h4 {
+    margin: 0 0 10px 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.pending-orders-list,
+.recent-trades-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.pending-order-item,
+.trade-item {
+    background: white;
+    padding: 8px;
+    border-radius: 5px;
+    font-size: 0.85em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pending-order-item {
+    border-left: 3px solid #667eea;
+}
+
+.pending-order-item.buy {
+    border-left-color: #28a745;
+}
+
+.pending-order-item.sell {
+    border-left-color: #dc3545;
+}
+
+.trade-item.buy {
+    border-left: 3px solid #28a745;
+}
+
+.trade-item.sell {
+    border-left: 3px solid #dc3545;
+}
+
+.cancel-order-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+}
+
+.cancel-order-btn:hover {
+    background: #5a6268;
+}
+
+.no-orders,
+.no-trades {
+    text-align: center;
+    color: #999;
+    font-size: 0.85em;
+    padding: 10px;
+}
+
+/* 다크 모드 */
+body.dark-mode .order-book-content {
+    background: #1a1a2e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .order-book-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .ai-traders-info {
+    background: #16213e;
+}
+
+body.dark-mode .ai-traders-info h4 {
+    color: #b0b0b0;
+}
+
+body.dark-mode .ai-traders-info p {
+    color: #e0e0e0;
+}
+
+body.dark-mode .sell-orders-section,
+body.dark-mode .buy-orders-section {
+    background: #16213e;
+}
+
+body.dark-mode .order-row {
+    border-bottom-color: #2a3a5e;
+}
+
+body.dark-mode .order-input-section {
+    background: #16213e;
+}
+
+body.dark-mode .order-tab {
+    background: #2a2a3e;
+    color: #b0b0b0;
+}
+
+body.dark-mode .order-tab.active {
+    background: #667eea;
+    color: white;
+}
+
+body.dark-mode .order-input-group label {
+    color: #b0b0b0;
+}
+
+body.dark-mode .order-input-group input {
+    background: #2a2a3e;
+    border-color: #3a4a6e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .pending-orders-section,
+body.dark-mode .recent-trades-section {
+    background: #16213e;
+}
+
+body.dark-mode .pending-order-item,
+body.dark-mode .trade-item {
+    background: #2a2a3e;
+    color: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+    .order-book-content {
+        width: 95%;
+        padding: 15px;
+    }
+
+    .order-book-title {
+        font-size: 1.2em;
+    }
+
+    .order-inputs {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* 호가창 버튼 스타일 */
+.order-book-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9em;
+    transition: all 0.3s;
+    margin-right: 5px;
+}
+
+.order-book-btn:hover:not(:disabled) {
+    background: #5568d3;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.order-book-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+body.dark-mode .order-book-btn {
+    background: #5568d3;
+}
+
+body.dark-mode .order-book-btn:hover:not(:disabled) {
+    background: #667eea;
+}
+
