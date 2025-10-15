@@ -127,19 +127,15 @@ function handleMarketOpen(marketId) {
 
         // 2. 모든 주식의 주문 매칭 및 거래 처리
         markets[marketId].forEach(stock => {
-            if (!stock.delisted) {
-                const trades = matchOrders(stock.id, marketId, stock);
-                if (trades.length > 0) {
-                    processTrades(trades);
-                }
+            const trades = matchOrders(stock.id, marketId, stock);
+            if (trades.length > 0) {
+                processTrades(trades);
             }
         });
 
         // 3. 주가 상태 업데이트 (호가창 기반)
         markets[marketId].forEach(stock => {
-            if (!stock.delisted) {
-                updateStockStateFromOrderBook(stock);
-            }
+            updateStockStateFromOrderBook(stock);
         });
 
         // 4. 레버리지 청산 체크

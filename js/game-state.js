@@ -51,7 +51,7 @@ export function getTotalAssets() {
             }
         }
 
-        if (stock && !stock.delisted) {
+        if (stock) {
             const value = stock.price * holding.quantity;
             if (stock.market === 'korea') {
                 stockKrwValue += value;

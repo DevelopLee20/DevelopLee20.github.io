@@ -60,7 +60,6 @@ export function createNewStock(marketId) {
         name: availableNames[Math.floor(Math.random() * availableNames.length)],
         price: initialPrice,
         prevPrice: 0,
-        delisted: false,
         priceHistory: [] // 가격 변동 이력
     };
     stock.prevPrice = stock.price;
@@ -73,8 +72,6 @@ export function createNewStock(marketId) {
 // 주가 변동
 export function updateStockPrices(marketId) {
     markets[marketId].forEach(stock => {
-        if (stock.delisted) return;
-
         stock.prevPrice = stock.price;
         // 현재 가격의 ±5% 변동
         const changePercent = (Math.random() - 0.5) * 0.1; // -5% ~ +5%
@@ -85,19 +82,14 @@ export function updateStockPrices(marketId) {
             change = Math.round(change / 100) * 100;
         }
 
-        stock.price = Math.max(0, stock.price + change);
+        // 최소 가격 보장 (국내: 100원, 미국: $0.01)
+        const minPrice = stock.market === 'korea' ? 100 : 0.01;
+        stock.price = Math.max(minPrice, stock.price + change);
 
         // 가격 이력 추가 (최대 100개 유지)
         stock.priceHistory.push({time: Date.now(), price: stock.price});
         if (stock.priceHistory.length > 100) {
             stock.priceHistory.shift();
-        }
-
-        // 상장폐지 체크 (국내: 100원 이하, 미국: $1 이하)
-        const delistThreshold = stock.market === 'korea' ? 100 : 1;
-        if (stock.price < delistThreshold) {
-            stock.delisted = true;
-            stock.price = 0;
         }
     });
 }
@@ -105,7 +97,7 @@ export function updateStockPrices(marketId) {
 // 주식 매수
 export function buyStock(stockId, quantity, gameState) {
     const stock = findStock(stockId);
-    if (!stock || stock.delisted || !gameState.marketStatus[stock.market].isOpen || gameState.gameOver) {
+    if (!stock || !gameState.marketStatus[stock.market].isOpen || gameState.gameOver) {
         return { success: false };
     }
 
@@ -134,7 +126,6 @@ export function buyStock(stockId, quantity, gameState) {
 // 주식 매도
 export function sellStock(stockId, gameState) {
     const stock = findStock(stockId);
-    // 매도는 상장폐지되도 가능해야 할 수 있으므로 delisted 체크는 뺌
     if (!stock || gameState.gameOver) {
         return { success: false };
     }
@@ -194,13 +185,13 @@ export function findStock(stockId) {
 
 // 상장된 주식 수 가져오기
 export function getActiveStocksCount(marketId) {
-    return markets[marketId].filter(s => !s.delisted).length;
+    return markets[marketId].length;
 }
 
 // 레버리지 매수
 export function buyStockWithLeverage(stockId, quantity, leverage, gameState) {
     const stock = findStock(stockId);
-    if (!stock || stock.delisted || !gameState.marketStatus[stock.market].isOpen || gameState.gameOver) {
+    if (!stock || !gameState.marketStatus[stock.market].isOpen || gameState.gameOver) {
         return { success: false };
     }
 
@@ -289,7 +280,7 @@ export function checkLiquidations(gameState) {
         if (!stock) continue;
 
         // 청산 조건: 현재 가격이 청산가 이하
-        if (stock.price <= position.liquidationPrice || stock.delisted) {
+        if (stock.price <= position.liquidationPrice) {
             const currency = stock.market === 'korea' ? 'krw' : 'usd';
             const currentValue = stock.price * position.quantity;
             const profitLoss = currentValue - position.borrowedAmount - position.ownCapital;
@@ -313,7 +304,7 @@ export function checkLiquidations(gameState) {
 
 // 호가창 데이터로 주식 상태 업데이트
 export function updateStockStateFromOrderBook(stock) {
-    if (!stock || stock.delisted) return;
+    if (!stock) return;
 
     const orderBookDepth = getOrderBookDepth(stock.id, stock.market, 1);
     const recentTrades = getRecentTrades(stock.id, stock.market, 1);
@@ -326,7 +317,9 @@ export function updateStockStateFromOrderBook(stock) {
 
     // 체결된 거래가 있으면 체결가로 현재가 업데이트
     if (recentTrades.length > 0) {
-        stock.price = lastTradedPrice;
+        // 최소 가격 보장 (국내: 100원, 미국: $0.01)
+        const minPrice = stock.market === 'korea' ? 100 : 0.01;
+        stock.price = Math.max(minPrice, lastTradedPrice);
     }
 
     stock.bestBid = bestBid;
@@ -336,12 +329,5 @@ export function updateStockStateFromOrderBook(stock) {
     stock.priceHistory.push({ time: Date.now(), price: stock.price });
     if (stock.priceHistory.length > 100) {
         stock.priceHistory.shift();
-    }
-
-    // 상장폐지 체크 (호가나 거래가 아예 없는 경우 등 추가 조건 고려 가능)
-    const delistThreshold = stock.market === 'korea' ? 100 : 1;
-    if (stock.price < delistThreshold && stock.price > 0) { // 0이 아닐 때만 상폐 처리
-        stock.delisted = true;
-        stock.price = 0;
     }
 }

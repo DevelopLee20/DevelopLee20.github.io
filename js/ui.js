@@ -37,7 +37,7 @@ export function renderStocks() {
 
         marketStocks.forEach(stock => {
             const div = document.createElement('div');
-            div.className = 'stock-item' + (stock.delisted ? ' delisted' : '');
+            div.className = 'stock-item';
 
             const priceChange = stock.price - stock.prevPrice;
             const changeClass = priceChange > 0 ? 'price-up' : priceChange < 0 ? 'price-down' : '';
@@ -49,17 +49,17 @@ export function renderStocks() {
 
             div.innerHTML = `
                 <div class="stock-info stock-info-clickable" onclick="window.showChart(${stock.id})">
-                    <div class="stock-name">${stock.name} ${stock.delisted ? '(상장폐지)' : ''}</div>
+                    <div class="stock-name">${stock.name}</div>
                     <div class="stock-price ${priceChange < 0 ? 'negative' : ''}">
                         ${currencySymbol}${price}
                         ${changeSymbol ? `<span class="price-change ${changeClass}">${changeSymbol} ${currencySymbol}${changeAmount}</span>` : ''}
                     </div>
                 </div>
                 <div class="stock-actions">
-                    <button class="order-book-btn" onclick="window.openOrderBook(${stock.id})" ${stock.delisted ? 'disabled' : ''}>호가</button>
-                    <button class="buy-btn" onclick="window.buyStockHandler(${stock.id})" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>매수</button>
-                    <button class="buy-btn" onclick="window.buyStockHandler(${stock.id}, 10)" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>10주</button>
-                    <button class="buy-btn" onclick="window.buyStockHandler(${stock.id}, 100)" ${!isMarketOpen || stock.delisted ? 'disabled' : ''}>100주</button>
+                    <button class="order-book-btn" onclick="window.openOrderBook(${stock.id})">호가</button>
+                    <button class="buy-btn" onclick="window.buyStockHandler(${stock.id})" ${!isMarketOpen ? 'disabled' : ''}>매수</button>
+                    <button class="buy-btn" onclick="window.buyStockHandler(${stock.id}, 10)" ${!isMarketOpen ? 'disabled' : ''}>10주</button>
+                    <button class="buy-btn" onclick="window.buyStockHandler(${stock.id}, 100)" ${!isMarketOpen ? 'disabled' : ''}>100주</button>
                 </div>
             `;
             container.appendChild(div);
@@ -230,7 +230,7 @@ export function showToast(message, type = 'success') {
 // 호가창 열기
 export function openOrderBook(stockId) {
     const stock = findStock(stockId);
-    if (!stock || stock.delisted) return;
+    if (!stock) return;
 
     currentOrderBookStockId = stockId;
 

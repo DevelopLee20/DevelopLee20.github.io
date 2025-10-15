@@ -42,8 +42,6 @@ export function initializeAITraders(stockId, marketId) {
 // 모든 AI 트레이더 업데이트 (주기적 실행)
 export function updateAllAITraders(marketId) {
     markets[marketId].forEach(stock => {
-        if (stock.delisted) return;
-
         // AI 트레이더 풀이 없으면 생성
         if (!aiTraderPool[marketId][stock.id]) {
             initializeAITraders(stock.id, marketId);
@@ -123,8 +121,6 @@ export function resetAITraders() {
 // 시장 개장 시 모든 주식에 AI 트레이더 초기화
 export function initializeMarketAITraders(marketId) {
     markets[marketId].forEach(stock => {
-        if (!stock.delisted) {
-            initializeAITraders(stock.id, marketId);
-        }
+        initializeAITraders(stock.id, marketId);
     });
 }
