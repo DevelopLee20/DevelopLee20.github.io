@@ -50,18 +50,30 @@
                         </label>
                     </div>
                     <div class="leverage-ratio-container" id="leverage-ratio-container" style="display: none;">
-                        <label class="ratio-label">
-                            <input type="radio" name="leverage-ratio" value="2" checked>
-                            <span>2x</span>
-                        </label>
-                        <label class="ratio-label">
-                            <input type="radio" name="leverage-ratio" value="3">
-                            <span>3x</span>
-                        </label>
-                        <label class="ratio-label">
-                            <input type="radio" name="leverage-ratio" value="4">
-                            <span>4x</span>
-                        </label>
+                        <div class="leverage-direction-container">
+                            <label class="ratio-label">
+                                <input type="radio" name="leverage-direction" value="long" checked>
+                                <span>📈 롱</span>
+                            </label>
+                            <label class="ratio-label">
+                                <input type="radio" name="leverage-direction" value="short">
+                                <span>📉 숏</span>
+                            </label>
+                        </div>
+                        <div class="leverage-multiplier-container">
+                            <label class="ratio-label">
+                                <input type="radio" name="leverage-ratio" value="2" checked>
+                                <span>2x</span>
+                            </label>
+                            <label class="ratio-label">
+                                <input type="radio" name="leverage-ratio" value="3">
+                                <span>3x</span>
+                            </label>
+                            <label class="ratio-label">
+                                <input type="radio" name="leverage-ratio" value="4">
+                                <span>4x</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -125,6 +137,13 @@
                     <h4>📊 레버리지 포지션</h4>
                     <div id="leverage-positions-container">
                         <p class="empty-holdings">레버리지 포지션이 없습니다</p>
+                    </div>
+                </div>
+
+                <div class="holdings-list">
+                    <h4>📉 숏 포지션</h4>
+                    <div id="short-positions-container">
+                        <p class="empty-holdings">숏 포지션이 없습니다</p>
                     </div>
                 </div>
             </div>

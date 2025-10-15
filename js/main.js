@@ -1,6 +1,6 @@
 // 메인 게임 로직
 import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee, processTrades } from './game-state.js';
-import { markets, createInitialStocks, createNewStock, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock, buyStockWithLeverage, closeLeveragePosition, checkLiquidations, updateStockPrices } from './stock.js';
+import { markets, createInitialStocks, createNewStock, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock, buyStockWithLeverage, closeLeveragePosition, checkLiquidations, updateStockPrices, shortSellStock, coverShortPosition } from './stock.js';
 import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast } from './ui.js';
 import { showChart, closeChart, updateChartIfOpen } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
@@ -119,10 +119,14 @@ function handleMarketOpen(marketId) {
         // 1. 주가 랜덤 변동 (-5% ~ +5%)
         updateStockPrices(marketId);
 
-        // 2. 레버리지 청산 체크
+        // 2. 레버리지 및 숏 청산 체크
         const liquidatedPositions = checkLiquidations(gameState);
         liquidatedPositions.forEach(pos => {
-            showToast(`${pos.stockName} ${pos.leverage}x 레버리지 포지션이 청산되었습니다!`, 'error');
+            if (pos.type === 'short') {
+                showToast(`${pos.stockName} 숏 포지션이 청산되었습니다!`, 'error');
+            } else {
+                showToast(`${pos.stockName} ${pos.leverage}x 레버리지 포지션이 청산되었습니다!`, 'error');
+            }
         });
 
         // 3. UI 업데이트
@@ -186,19 +190,37 @@ function buyStockHandler(stockId, quantity = 1) {
     const leverageEnabled = document.getElementById('leverage-toggle')?.checked;
 
     if (leverageEnabled) {
+        const direction = document.querySelector('input[name="leverage-direction"]:checked')?.value || 'long';
         const leverage = parseInt(document.querySelector('input[name="leverage-ratio"]:checked')?.value || '2');
-        const result = buyStockWithLeverage(stockId, quantity, leverage, gameState);
 
-        if (result.success) {
-            updatePlayerInfo();
-            renderStocks();
-            const stock = findStock(stockId);
-            const currencySymbol = stock.market === 'korea' ? '₩' : '$';
-            const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
-            const liquidationPrice = stock.market === 'korea' ? Math.floor(result.liquidationPrice).toLocaleString() : result.liquidationPrice.toFixed(2);
-            showToast(`${result.stockName} ${quantity}주 ${leverage}x 레버리지 매수 완료! (수수료: ${currencySymbol}${feeAmount}, 청산가: ${currencySymbol}${liquidationPrice})`);
-        } else if (result.message) {
-            showToast(result.message, 'error');
+        if (direction === 'short') {
+            // 숏 포지션
+            const result = shortSellStock(stockId, quantity, gameState);
+            if (result.success) {
+                updatePlayerInfo();
+                renderStocks();
+                const stock = findStock(stockId);
+                const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+                const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
+                const liquidationPrice = stock.market === 'korea' ? Math.floor(result.liquidationPrice).toLocaleString() : result.liquidationPrice.toFixed(2);
+                showToast(`${result.stockName} ${quantity}주 숏 포지션 진입! (수수료: ${currencySymbol}${feeAmount}, 청산가: ${currencySymbol}${liquidationPrice})`);
+            } else if (result.message) {
+                showToast(result.message, 'error');
+            }
+        } else {
+            // 롱 포지션 (레버리지)
+            const result = buyStockWithLeverage(stockId, quantity, leverage, gameState);
+            if (result.success) {
+                updatePlayerInfo();
+                renderStocks();
+                const stock = findStock(stockId);
+                const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+                const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
+                const liquidationPrice = stock.market === 'korea' ? Math.floor(result.liquidationPrice).toLocaleString() : result.liquidationPrice.toFixed(2);
+                showToast(`${result.stockName} ${quantity}주 ${leverage}x 레버리지 매수 완료! (수수료: ${currencySymbol}${feeAmount}, 청산가: ${currencySymbol}${liquidationPrice})`);
+            } else if (result.message) {
+                showToast(result.message, 'error');
+            }
         }
     } else {
         const result = buyStock(stockId, quantity, gameState);
@@ -224,6 +246,21 @@ function closeLeveragePositionHandler(positionId) {
         const formattedAmount = stock?.market === 'korea' ? Math.floor(profitLossAmount).toLocaleString() : profitLossAmount.toFixed(2);
         const profitLossText = result.profitLoss >= 0 ? `+${currencySymbol}${formattedAmount}` : `-${currencySymbol}${formattedAmount}`;
         showToast(`${result.stockName} ${result.quantity}주 ${result.leverage}x 레버리지 포지션 청산 완료! (${profitLossText})`);
+    }
+}
+
+// 숏 포지션 청산 핸들러
+function coverShortPositionHandler(positionId) {
+    const result = coverShortPosition(positionId, gameState);
+    if (result.success) {
+        updatePlayerInfo();
+        renderStocks();
+        const stock = findStock(result.stockId || 0);
+        const currencySymbol = stock?.market === 'korea' ? '₩' : '$';
+        const profitLossAmount = Math.abs(result.profitLoss);
+        const formattedAmount = stock?.market === 'korea' ? Math.floor(profitLossAmount).toLocaleString() : profitLossAmount.toFixed(2);
+        const profitLossText = result.profitLoss >= 0 ? `+${currencySymbol}${formattedAmount}` : `-${currencySymbol}${formattedAmount}`;
+        showToast(`${result.stockName} ${result.quantity}주 숏 포지션 청산 완료! (${profitLossText})`);
     }
 }
 
@@ -326,6 +363,7 @@ window.buyStockHandler = buyStockHandler;
 window.sellStockHandler = sellStockHandler;
 window.sellAllStockHandler = sellAllStockHandler;
 window.closeLeveragePositionHandler = closeLeveragePositionHandler;
+window.coverShortPositionHandler = coverShortPositionHandler;
 window.restartGame = restartGameHandler;
 window.showChart = showChart;
 window.closeChart = closeChart;

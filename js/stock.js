@@ -275,6 +275,7 @@ export function closeLeveragePosition(positionId, gameState) {
 export function checkLiquidations(gameState) {
     const liquidatedPositions = [];
 
+    // 레버리지 포지션 청산 체크
     for (let i = gameState.leveragedPositions.length - 1; i >= 0; i--) {
         const position = gameState.leveragedPositions[i];
         const stock = findStock(position.stockId);
@@ -291,6 +292,7 @@ export function checkLiquidations(gameState) {
             gameState.cash[currency] += finalAmount;
 
             liquidatedPositions.push({
+                type: 'leverage',
                 stockName: stock.name,
                 quantity: position.quantity,
                 leverage: position.leverage,
@@ -301,5 +303,104 @@ export function checkLiquidations(gameState) {
         }
     }
 
+    // 숏 포지션 청산 체크
+    for (let i = gameState.shortPositions.length - 1; i >= 0; i--) {
+        const position = gameState.shortPositions[i];
+        const stock = findStock(position.stockId);
+
+        if (!stock) continue;
+
+        // 청산 조건: 현재 가격이 청산가 이상 (가격이 올라가면 손실)
+        if (stock.price >= position.liquidationPrice) {
+            const currency = stock.market === 'korea' ? 'krw' : 'usd';
+            const profitLoss = (position.entryPrice - stock.price) * position.quantity;
+            const finalAmount = Math.max(0, position.margin + profitLoss); // 음수 방지
+
+            gameState.cash[currency] += finalAmount;
+
+            liquidatedPositions.push({
+                type: 'short',
+                stockName: stock.name,
+                quantity: position.quantity,
+                loss: -profitLoss
+            });
+
+            gameState.shortPositions.splice(i, 1);
+        }
+    }
+
     return liquidatedPositions;
+}
+
+// 숏 매도
+export function shortSellStock(stockId, quantity, gameState) {
+    const stock = findStock(stockId);
+    if (!stock || !gameState.marketStatus[stock.market].isOpen || gameState.gameOver) {
+        return { success: false };
+    }
+
+    const totalValue = stock.price * quantity;
+    const currency = stock.market === 'korea' ? 'krw' : 'usd';
+    const currencyName = currency === 'krw' ? '원' : '달러';
+
+    // 필요한 증거금 = 주식 가치의 50%
+    const margin = totalValue * 0.5;
+    const fee = margin * 0.01; // 1% 수수료
+    const totalRequired = margin + fee;
+
+    if (gameState.cash[currency] < totalRequired) {
+        return { success: false, message: `보유 ${currencyName}가 부족합니다! (필요: ${Math.ceil(totalRequired).toLocaleString()}${currencyName})` };
+    }
+
+    // 청산가 계산: 증거금의 90%를 잃을 때
+    // (entryPrice - liquidationPrice) * quantity = -margin * 0.9
+    // liquidationPrice = entryPrice + (margin * 0.9) / quantity
+    const liquidationPrice = stock.price + (margin * 0.9) / quantity;
+
+    gameState.cash[currency] -= totalRequired;
+
+    const position = {
+        id: gameState.shortIdCounter++,
+        stockId: stockId,
+        quantity: quantity,
+        entryPrice: stock.price,
+        margin: margin,
+        liquidationPrice: liquidationPrice
+    };
+
+    gameState.shortPositions.push(position);
+
+    return { success: true, stockName: stock.name, fee: fee, liquidationPrice: liquidationPrice };
+}
+
+// 숏 포지션 청산 (커버)
+export function coverShortPosition(positionId, gameState) {
+    const positionIndex = gameState.shortPositions.findIndex(p => p.id === positionId);
+    if (positionIndex === -1 || gameState.gameOver) {
+        return { success: false };
+    }
+
+    const position = gameState.shortPositions[positionIndex];
+    const stock = findStock(position.stockId);
+
+    if (!stock) {
+        return { success: false };
+    }
+
+    const currency = stock.market === 'korea' ? 'krw' : 'usd';
+
+    // 손익 = (진입가 - 현재가) × 수량
+    const profitLoss = (position.entryPrice - stock.price) * position.quantity;
+    const finalAmount = position.margin + profitLoss;
+
+    gameState.cash[currency] += finalAmount;
+    gameState.shortPositions.splice(positionIndex, 1);
+
+    return {
+        success: true,
+        stockId: position.stockId,
+        stockName: stock.name,
+        quantity: position.quantity,
+        profitLoss: profitLoss
+    };
 }

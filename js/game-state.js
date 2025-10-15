@@ -13,6 +13,8 @@ export const gameState = {
     holdings: {}, // {stockId: {quantity, avgPrice}}
     leveragedPositions: [], // [{id, stockId, quantity, entryPrice, leverage, ownCapital, borrowedAmount, liquidationPrice}]
     leverageIdCounter: 0, // 레버리지 포지션 ID 카운터
+    shortPositions: [], // [{id, stockId, quantity, entryPrice, margin, liquidationPrice}]
+    shortIdCounter: 0, // 숏 포지션 ID 카운터
     marketStatus: {
         korea: { isOpen: false },
         usa: { isOpen: false }
@@ -28,6 +30,8 @@ export function resetGameState() {
     gameState.holdings = {};
     gameState.leveragedPositions = [];
     gameState.leverageIdCounter = 0;
+    gameState.shortPositions = [];
+    gameState.shortIdCounter = 0;
     gameState.marketStatus = {
         korea: { isOpen: false },
         usa: { isOpen: false }
@@ -76,6 +80,30 @@ export function getTotalAssets() {
             const currentValue = stock.price * position.quantity;
             const profitLoss = currentValue - position.borrowedAmount - position.ownCapital;
             const positionValue = position.ownCapital + profitLoss;
+
+            if (stock.market === 'korea') {
+                stockKrwValue += positionValue;
+            } else if (stock.market === 'usa') {
+                stockUsdValue += positionValue;
+            }
+        }
+    });
+
+    // 숏 포지션
+    gameState.shortPositions.forEach(position => {
+        let stock = null;
+        for (const marketId in markets) {
+            const found = markets[marketId].find(s => s.id === position.stockId);
+            if (found) {
+                stock = found;
+                break;
+            }
+        }
+
+        if (stock) {
+            // 숏 포지션 손익: (진입가 - 현재가) × 수량
+            const profitLoss = (position.entryPrice - stock.price) * position.quantity;
+            const positionValue = position.margin + profitLoss;
 
             if (stock.market === 'korea') {
                 stockKrwValue += positionValue;

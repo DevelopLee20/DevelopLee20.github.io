@@ -1563,6 +1563,13 @@ body.dark-mode .toast-warning {
 
 .leverage-ratio-container {
     display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.leverage-direction-container,
+.leverage-multiplier-container {
+    display: flex;
     gap: 8px;
     flex-wrap: wrap;
 }
@@ -1647,8 +1654,18 @@ body.dark-mode .toast-warning {
     margin-left: 5px;
 }
 
+/* 숏 포지션 배지 */
+.short-badge {
+    background: #dc3545;
+    color: white;
+}
+
 .leverage-position {
     border-left: 3px solid #ffc107;
+}
+
+.short-position {
+    border-left: 3px solid #dc3545;
 }
 
 .liquidation-warning {
