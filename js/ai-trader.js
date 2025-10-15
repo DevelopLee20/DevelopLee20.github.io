@@ -115,7 +115,7 @@ export class AITrader {
         let price;
         if (useMarketOrder) {
             // 시장가: 현재가로 설정 (매칭 시 최우선 매도호가와 체결됨)
-            price = currentPrice * 1.01; // 현재가보다 약간 높게 설정하여 즉시 체결 유도
+            price = this.roundPrice(currentPrice * 1.5, stock.market); // 즉시 체결을 위해 높게 설정
         } else {
             // 지정가: 현재가보다 낮은 가격으로 매수 주문
             const priceOffset = currentPrice * spreadRange * Math.random();
@@ -145,8 +145,8 @@ export class AITrader {
 
         let price;
         if (useMarketOrder) {
-            // 시장가: 현재가보다 약간 낮게 설정하여 즉시 체결 유도
-            price = currentPrice * 0.99;
+            // 시장가: 현재가보다 낮게 설정하여 즉시 체결 유도
+            price = this.roundPrice(currentPrice * 0.5, stock.market); // 즉시 체결을 위해 낮게 설정
         } else {
             // 지정가: 현재가보다 높은 가격으로 매도 주문
             const priceOffset = currentPrice * spreadRange * Math.random();

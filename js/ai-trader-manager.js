@@ -110,12 +110,9 @@ export function getAITradersInfo(stockId, marketId) {
 
 // AI 트레이더 풀 초기화
 export function resetAITraders() {
-    Object.keys(aiTraderPool.korea).forEach(stockId => {
-        aiTraderPool.korea[stockId] = [];
-    });
-    Object.keys(aiTraderPool.usa).forEach(stockId => {
-        aiTraderPool.usa[stockId] = [];
-    });
+    // 완전히 새로운 객체로 교체하여 이전 데이터 제거
+    aiTraderPool.korea = {};
+    aiTraderPool.usa = {};
 }
 
 // 시장 개장 시 모든 주식에 AI 트레이더 초기화

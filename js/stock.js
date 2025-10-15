@@ -1,5 +1,4 @@
 // 주식 데이터 관리
-import { getOrderBookDepth, getRecentTrades } from './order-book.js';
 
 export let markets = {
     korea: [],
@@ -73,13 +72,16 @@ export function createNewStock(marketId) {
 export function updateStockPrices(marketId) {
     markets[marketId].forEach(stock => {
         stock.prevPrice = stock.price;
-        // 현재 가격의 ±5% 변동
-        const changePercent = (Math.random() - 0.5) * 0.1; // -5% ~ +5%
+        // 현재 가격의 -5% ~ +5% 랜덤 변동
+        const changePercent = (Math.random() * 0.1) - 0.05; // -5% ~ +5%
         let change = stock.price * changePercent;
 
         if (stock.market === 'korea') {
             // 국내 주식: 100원 단위로 반올림
             change = Math.round(change / 100) * 100;
+        } else {
+            // 미국 주식: $0.01 단위로 반올림
+            change = Math.round(change * 100) / 100;
         }
 
         // 최소 가격 보장 (국내: 100원, 미국: $0.01)
@@ -300,34 +302,4 @@ export function checkLiquidations(gameState) {
     }
 
     return liquidatedPositions;
-}
-
-// 호가창 데이터로 주식 상태 업데이트
-export function updateStockStateFromOrderBook(stock) {
-    if (!stock) return;
-
-    const orderBookDepth = getOrderBookDepth(stock.id, stock.market, 1);
-    const recentTrades = getRecentTrades(stock.id, stock.market, 1);
-
-    const bestBid = orderBookDepth.buyOrders.length > 0 ? orderBookDepth.buyOrders[0].price : null;
-    const bestAsk = orderBookDepth.sellOrders.length > 0 ? orderBookDepth.sellOrders[0].price : null;
-    const lastTradedPrice = recentTrades.length > 0 ? recentTrades[0].price : stock.price; // 최근 거래 없으면 기존 가격 유지
-
-    stock.prevPrice = stock.price;
-
-    // 체결된 거래가 있으면 체결가로 현재가 업데이트
-    if (recentTrades.length > 0) {
-        // 최소 가격 보장 (국내: 100원, 미국: $0.01)
-        const minPrice = stock.market === 'korea' ? 100 : 0.01;
-        stock.price = Math.max(minPrice, lastTradedPrice);
-    }
-
-    stock.bestBid = bestBid;
-    stock.bestAsk = bestAsk;
-
-    // 가격 이력 추가
-    stock.priceHistory.push({ time: Date.now(), price: stock.price });
-    if (stock.priceHistory.length > 100) {
-        stock.priceHistory.shift();
-    }
 }

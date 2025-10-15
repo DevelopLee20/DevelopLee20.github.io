@@ -103,8 +103,8 @@ export function matchOrders(stockId, marketId, stock) {
 
         // 체결 조건 확인
         if (topBuy.price >= topSell.price) {
-            // 체결 가격: 먼저 제시된 주문의 가격
-            const matchPrice = topBuy.timestamp < topSell.timestamp ? topBuy.price : topSell.price;
+            // 체결 가격: 매도 호가로 고정 (가격 안정성을 위해)
+            const matchPrice = topSell.price;
             const matchQuantity = Math.min(topBuy.remainingQuantity, topSell.remainingQuantity);
 
             // 체결 실행
@@ -279,17 +279,10 @@ export function initOrderBook(stockId, marketId) {
 
 // 전체 주문장 초기화
 export function resetOrderBook() {
-    Object.keys(orderBook.korea).forEach(stockId => {
-        orderBook.korea[stockId] = { buyOrders: [], sellOrders: [] };
-    });
-    Object.keys(orderBook.usa).forEach(stockId => {
-        orderBook.usa[stockId] = { buyOrders: [], sellOrders: [] };
-    });
-    Object.keys(tradeHistory.korea).forEach(stockId => {
-        tradeHistory.korea[stockId] = [];
-    });
-    Object.keys(tradeHistory.usa).forEach(stockId => {
-        tradeHistory.usa[stockId] = [];
-    });
+    // 완전히 새로운 객체로 교체하여 이전 데이터 제거
+    orderBook.korea = {};
+    orderBook.usa = {};
+    tradeHistory.korea = {};
+    tradeHistory.usa = {};
     orderIdCounter = 0;
 }
