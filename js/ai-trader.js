@@ -7,51 +7,51 @@ export const AI_TRADER_TYPES = {
     SCALPER: {
         name: '단타매매자',
         behavior: {
-            orderFrequency: 2000,      // 2초마다 주문 (더 빠르게)
-            orderLifetime: 8000,       // 8초 후 주문 취소
-            spreadRange: 0.002,        // 현재가 대비 ±0.2%
-            quantityRange: [5, 50],    // 주문 수량 증가
-            aggression: 0.85           // 공격성 증가 (시장가 사용 확률)
+            orderFrequency: 1000,      // 1초마다 주문
+            orderLifetime: 5000,       // 5초 후 주문 취소
+            spreadRange: 0.015,        // 현재가 대비 ±1.5%
+            quantityRange: [10, 80],   // 주문 수량 대폭 증가
+            aggression: 0.9            // 공격성 대폭 증가 (90% 시장가)
         }
     },
     DAY_TRADER: {
         name: '데이트레이더',
         behavior: {
-            orderFrequency: 8000,      // 8초마다 주문 (더 빠르게)
-            orderLifetime: 40000,      // 40초 후 주문 취소
-            spreadRange: 0.005,        // ±0.5%
-            quantityRange: [20, 100],  // 주문 수량 증가
-            aggression: 0.6            // 공격성 증가
+            orderFrequency: 1000,      // 1초마다 주문
+            orderLifetime: 10000,      // 10초 후 주문 취소
+            spreadRange: 0.02,         // ±2%
+            quantityRange: [30, 150],  // 주문 수량 대폭 증가
+            aggression: 0.75           // 공격성 대폭 증가
         }
     },
     SWING_TRADER: {
         name: '스윙트레이더',
         behavior: {
-            orderFrequency: 15000,     // 15초마다 주문 (더 빠르게)
-            orderLifetime: 120000,     // 2분 후 주문 취소
-            spreadRange: 0.01,         // ±1%
-            quantityRange: [30, 150],  // 주문 수량 증가
-            aggression: 0.4            // 공격성 증가
+            orderFrequency: 1000,      // 1초마다 주문
+            orderLifetime: 30000,      // 30초 후 주문 취소
+            spreadRange: 0.025,        // ±2.5%
+            quantityRange: [50, 200],  // 주문 수량 대폭 증가
+            aggression: 0.6            // 공격성 증가
         }
     },
     INVESTOR: {
         name: '장기투자자',
         behavior: {
-            orderFrequency: 30000,     // 30초마다 주문 (더 빠르게)
-            orderLifetime: -1,         // 취소 안함
-            spreadRange: 0.02,         // ±2%
-            quantityRange: [50, 300],  // 주문 수량 증가
-            aggression: 0.15           // 공격성 증가
+            orderFrequency: 1000,      // 1초마다 주문
+            orderLifetime: 60000,      // 1분 후 주문 취소
+            spreadRange: 0.03,         // ±3%
+            quantityRange: [80, 400],  // 주문 수량 대폭 증가
+            aggression: 0.3            // 공격성 증가
         }
     },
     MARKET_MAKER: {
         name: '마켓메이커',
         behavior: {
-            orderFrequency: 1500,      // 1.5초마다 주문 (더 빠르게)
-            orderLifetime: 15000,      // 15초 후 취소
-            spreadRange: 0.003,        // ±0.3%
-            quantityRange: [50, 250],  // 주문 수량 증가
-            aggression: 0.3,           // 공격성 증가
+            orderFrequency: 500,       // 0.5초마다 주문 (가장 빠르게)
+            orderLifetime: 8000,       // 8초 후 취소
+            spreadRange: 0.01,         // ±1%
+            quantityRange: [100, 300], // 주문 수량 대폭 증가
+            aggression: 0.5,           // 공격성 대폭 증가
             alwaysBothSides: true      // 매수/매도 양쪽 동시 주문
         }
     }
@@ -199,7 +199,7 @@ export class AITrader {
 
     roundPrice(price, market) {
         if (market === 'korea') {
-            // 한국 호가 단위: 100원 단위로 통일
+            // 한국 호가 단위: 100원 단위
             return Math.round(price / 100) * 100;
         } else {
             // 미국 주식: $0.01 단위
