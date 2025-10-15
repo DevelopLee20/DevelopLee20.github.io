@@ -69,7 +69,6 @@ export function updatePlayerInfo() {
     document.getElementById('exchange-rate').textContent = `1 USD = ${gameState.exchangeRate.toFixed(2)} KRW`;
     updateExchangeRateDisplay();
     updateHoldings();
-    updateExchangeSliderDisplay();
 }
 
 // 환율 변동 표시 업데이트
@@ -89,19 +88,6 @@ function updateExchangeRateDisplay() {
     }
 }
 
-// 환전 슬라이더 디스플레이 업데이트
-function updateExchangeSliderDisplay() {
-    const slider = document.getElementById('exchange-slider');
-    const amountDisplay = document.getElementById('exchange-amount-display');
-    const krwEquivalent = document.getElementById('krw-equivalent');
-
-    if (slider && amountDisplay && krwEquivalent) {
-        const usdAmount = parseInt(slider.value);
-        amountDisplay.textContent = usdAmount;
-        const krwAmount = Math.floor(usdAmount * gameState.exchangeRate);
-        krwEquivalent.textContent = `≈ ₩${krwAmount.toLocaleString()}`;
-    }
-}
 
 // 보유 주식 표시
 function updateHoldings() {

@@ -1,6 +1,6 @@
 import { markets, setStockIdCounter } from './stock.js';
 
-const EXCHANGE_FEE = 0.005; // 0.5% 환전 수수료
+const EXCHANGE_FEE = 0.01; // 1% 환전 수수료
 
 // 게임 상태 관리
 export const gameState = {

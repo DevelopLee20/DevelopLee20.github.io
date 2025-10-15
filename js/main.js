@@ -143,48 +143,18 @@ function handleMarketClose(marketId) {
     renderStocks();
 }
 
-// 환전 슬라이더 초기화
+// 환전 기능 초기화 (슬라이더 제거됨)
 function initExchangeSlider() {
-    const slider = document.getElementById('exchange-slider');
-    const amountDisplay = document.getElementById('exchange-amount-display');
-    const krwEquivalent = document.getElementById('krw-equivalent');
-    const feeAmount = document.getElementById('fee-amount');
-
-    slider.addEventListener('input', function() {
-        const usdAmount = parseInt(this.value);
-        amountDisplay.textContent = usdAmount;
-        const krwAmount = Math.floor(usdAmount * gameState.exchangeRate);
-        krwEquivalent.textContent = `≈ ₩${krwAmount.toLocaleString()}`;
-
-        // 수수료 표시 (기본적으로 원화→달러 수수료 표시)
-        const fee = calculateExchangeFee(krwAmount, 'krw_to_usd');
-        feeAmount.textContent = `₩${fee.toLocaleString()}`;
-    });
-
-    // 초기값 설정
-    updateSliderMax();
+    // 슬라이더가 제거되어 초기화 불필요
 }
 
-// 슬라이더 최댓값 업데이트
-function updateSliderMax() {
-    const slider = document.getElementById('exchange-slider');
-    const maxUsd = Math.floor(gameState.cash.krw / gameState.exchangeRate) + Math.floor(gameState.cash.usd);
-    slider.max = Math.max(maxUsd, 1000);
-
-    // 현재 값이 최댓값을 초과하면 조정
-    if (parseInt(slider.value) > slider.max) {
-        slider.value = slider.max;
-        slider.dispatchEvent(new Event('input'));
-    }
-}
-
-// 환전 핸들러
+// 환전 핸들러 (입력 금액 사용)
 function exchangeHandler(direction) {
-    const slider = document.getElementById('exchange-slider');
-    const usdAmount = parseInt(slider.value);
+    const inputElement = document.getElementById('exchange-amount-input');
+    const usdAmount = parseInt(inputElement.value);
 
-    if (usdAmount <= 0) {
-        showToast('환전할 금액을 선택하세요.', 'warning');
+    if (!usdAmount || usdAmount <= 0) {
+        showToast('유효한 금액을 입력하세요.', 'warning');
         return;
     }
 
@@ -203,10 +173,7 @@ function exchangeHandler(direction) {
     }
 
     if (result.success) {
-        slider.value = 0;
-        slider.dispatchEvent(new Event('input'));
         updatePlayerInfo();
-        updateSliderMax();
         showToast(message);
     } else {
         showToast(result.message, 'error');
@@ -338,14 +305,6 @@ function restartGameHandler() {
     renderStocks();
 }
 
-// 빠른 금액 선택 버튼
-function setQuickAmount(percentage) {
-    const slider = document.getElementById('exchange-slider');
-    const maxValue = parseInt(slider.max);
-    const quickAmount = Math.floor(maxValue * percentage);
-    slider.value = quickAmount;
-    slider.dispatchEvent(new Event('input'));
-}
 
 // 인생 리셋 (로컬 스토리지 초기화)
 function resetLife() {
@@ -391,7 +350,6 @@ window.toggleDarkMode = toggleDarkMode;
 window.cycleFontSize = cycleFontSize;
 window.switchTab = switchTab;
 window.exchangeHandler = exchangeHandler;
-window.setQuickAmount = setQuickAmount;
 window.resetLife = resetLife;
 
 // 게임 시작
