@@ -123,8 +123,7 @@ function updateHoldings() {
                             </div>
                         </div>
                         <div class="holding-actions">
-                            <button class="sell-btn sell-btn-small" onclick="window.sellStockHandler(${stockId})">매도</button>
-                            <button class="sell-btn sell-btn-small" onclick="window.sellAllStockHandler(${stockId})">전부</button>
+                            <button class="sell-btn sell-btn-small" onclick="window.sellAllStockHandler(${stockId})">전량 매도</button>
                         </div>
                     `;
                     holdingsContainer.appendChild(div);
