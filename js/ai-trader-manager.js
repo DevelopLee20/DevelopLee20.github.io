@@ -23,9 +23,9 @@ export function initializeAITraders(stockId, marketId) {
         return;
     }
 
-    // 각 타입별 AI 생성 (주식당 5~15명의 AI)
+    // 각 타입별 AI 생성 (주식당 100명의 AI)
     const traderTypes = Object.keys(AI_TRADER_TYPES);
-    const numTraders = Math.floor(Math.random() * 10) + 5; // 5~15명
+    const numTraders = 100; // 100명 고정
 
     for (let i = 0; i < numTraders; i++) {
         const randomType = traderTypes[Math.floor(Math.random() * traderTypes.length)];

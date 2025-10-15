@@ -1,4 +1,6 @@
 // 주식 데이터 관리
+import { getOrderBookDepth, getRecentTrades } from './order-book.js';
+
 export let markets = {
     korea: [],
     usa: []
@@ -27,7 +29,7 @@ const STOCK_NAMES = {
 
 // 초기 주식 생성
 export function createInitialStocks() {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 10; i++) {
         createNewStock('korea');
         createNewStock('usa');
     }
@@ -307,4 +309,39 @@ export function checkLiquidations(gameState) {
     }
 
     return liquidatedPositions;
+}
+
+// 호가창 데이터로 주식 상태 업데이트
+export function updateStockStateFromOrderBook(stock) {
+    if (!stock || stock.delisted) return;
+
+    const orderBookDepth = getOrderBookDepth(stock.id, stock.market, 1);
+    const recentTrades = getRecentTrades(stock.id, stock.market, 1);
+
+    const bestBid = orderBookDepth.buyOrders.length > 0 ? orderBookDepth.buyOrders[0].price : null;
+    const bestAsk = orderBookDepth.sellOrders.length > 0 ? orderBookDepth.sellOrders[0].price : null;
+    const lastTradedPrice = recentTrades.length > 0 ? recentTrades[0].price : stock.price; // 최근 거래 없으면 기존 가격 유지
+
+    stock.prevPrice = stock.price;
+
+    // 체결된 거래가 있으면 체결가로 현재가 업데이트
+    if (recentTrades.length > 0) {
+        stock.price = lastTradedPrice;
+    }
+
+    stock.bestBid = bestBid;
+    stock.bestAsk = bestAsk;
+
+    // 가격 이력 추가
+    stock.priceHistory.push({ time: Date.now(), price: stock.price });
+    if (stock.priceHistory.length > 100) {
+        stock.priceHistory.shift();
+    }
+
+    // 상장폐지 체크 (호가나 거래가 아예 없는 경우 등 추가 조건 고려 가능)
+    const delistThreshold = stock.market === 'korea' ? 100 : 1;
+    if (stock.price < delistThreshold && stock.price > 0) { // 0이 아닐 때만 상폐 처리
+        stock.delisted = true;
+        stock.price = 0;
+    }
 }

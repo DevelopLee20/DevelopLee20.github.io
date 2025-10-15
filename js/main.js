@@ -1,11 +1,11 @@
 // 메인 게임 로직
-import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee } from './game-state.js';
-import { markets, createInitialStocks, createNewStock, updateStockPrices, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock, buyStockWithLeverage, closeLeveragePosition, checkLiquidations } from './stock.js';
+import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee, processTrades } from './game-state.js';
+import { markets, createInitialStocks, createNewStock, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock, buyStockWithLeverage, closeLeveragePosition, checkLiquidations, updateStockStateFromOrderBook } from './stock.js';
 import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast, openOrderBook, closeOrderBook, switchOrderType, onOrderMethodChange, updateOrderBookIfOpen, getCurrentOrderBookStockId } from './ui.js';
 import { showChart, closeChart } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
 import { updateAllAITraders, initializeMarketAITraders, resetAITraders, aiTraderPool } from './ai-trader-manager.js';
-import { createOrder, addOrderToBook, matchOrders, cancelOrder, resetOrderBook } from './order-book.js';
+import { createOrder, addOrderToBook, matchOrders, cancelOrder, resetOrderBook, getOrderBookDepth, getRecentTrades } from './order-book.js';
 
 // 타이머 관련
 const priceUpdateIntervals = {
@@ -48,12 +48,7 @@ function init() {
 
         // 이미 개장 중인 시장이면 가격 업데이트 시작
         if (gameState.marketStatus[marketId].isOpen) {
-            if (priceUpdateIntervals[marketId]) clearInterval(priceUpdateIntervals[marketId]);
-            priceUpdateIntervals[marketId] = setInterval(() => {
-                updateStockPrices(marketId);
-                renderStocks();
-                updatePlayerInfo();
-            }, 2000);
+            handleMarketOpen(marketId);
         }
     });
 
@@ -130,15 +125,22 @@ function handleMarketOpen(marketId) {
         // 1. AI 트레이더 활동 업데이트
         updateAllAITraders(marketId);
 
-        // 2. 모든 주식의 주문 매칭
+        // 2. 모든 주식의 주문 매칭 및 거래 처리
         markets[marketId].forEach(stock => {
             if (!stock.delisted) {
-                matchOrders(stock.id, marketId, stock);
+                const trades = matchOrders(stock.id, marketId, stock);
+                if (trades.length > 0) {
+                    processTrades(trades);
+                }
             }
         });
 
-        // 3. 주가 업데이트
-        updateStockPrices(marketId);
+        // 3. 주가 상태 업데이트 (호가창 기반)
+        markets[marketId].forEach(stock => {
+            if (!stock.delisted) {
+                updateStockStateFromOrderBook(stock);
+            }
+        });
 
         // 4. 레버리지 청산 체크
         const liquidatedPositions = checkLiquidations(gameState);
@@ -251,7 +253,7 @@ function closeLeveragePositionHandler(positionId) {
 // 주식 매도 핸들러
 function sellStockHandler(stockId) {
     const stock = findStock(stockId); // 매도 전에 주식 정보 가져오기
-    const result = sellStock(stockId, gameState);
+    const result = sellStock(stockId, 1, gameState);
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
@@ -497,6 +499,33 @@ window.onOrderMethodChange = onOrderMethodChange;
 
 // 디버그용: AI 트레이더 풀 노출
 window.aiTraderPool = aiTraderPool;
+
+// 디버그용: 호가창 데이터 확인 함수
+window.debugOrderBook = function(stockId, marketId = 'korea') {
+    const stock = findStock(stockId);
+    if (!stock) {
+        console.error('주식을 찾을 수 없습니다. stockId:', stockId);
+        return;
+    }
+
+    const depth = getOrderBookDepth(stockId, marketId, 10);
+    console.log(`===== ${stock.name} (${stock.market}) 호가창 디버그 =====`);
+    console.log('현재가:', stock.price);
+    console.log('\n매도 호가 (높은 가격부터):');
+    depth.sellOrders.slice().reverse().forEach((order, idx) => {
+        console.log(`  ${5-idx}. 가격: ${order.price.toLocaleString()}, 수량: ${order.quantity}`);
+    });
+    console.log('\n매수 호가 (높은 가격부터):');
+    depth.buyOrders.forEach((order, idx) => {
+        console.log(`  ${idx+1}. 가격: ${order.price.toLocaleString()}, 수량: ${order.quantity}`);
+    });
+
+    const trades = getRecentTrades(stockId, marketId, 5);
+    console.log('\n최근 체결 내역:');
+    trades.forEach((trade, idx) => {
+        console.log(`  ${idx+1}. 가격: ${trade.price.toLocaleString()}, 수량: ${trade.quantity}, 시간: ${new Date(trade.timestamp).toLocaleTimeString()}`);
+    });
+};
 
 // 게임 시작
 console.log('main.js 로드 완료');

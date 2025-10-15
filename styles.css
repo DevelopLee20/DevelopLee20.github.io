@@ -1900,11 +1900,20 @@ body.dark-mode .liquidation-warning {
 }
 
 .order-row {
+    position: relative;
     display: grid;
     grid-template-columns: 1fr 1fr;
     padding: 6px 12px;
     font-size: 0.9em;
     border-bottom: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+}
+
+.order-row:hover {
+    background: rgba(102, 126, 234, 0.1);
+    transform: scale(1.02);
 }
 
 .order-row:last-child {
@@ -1919,13 +1928,90 @@ body.dark-mode .liquidation-warning {
     color: #28a745;
 }
 
-.order-row span:first-child {
+.order-row .order-price {
     text-align: left;
     font-weight: bold;
+    position: relative;
+    z-index: 2;
 }
 
-.order-row span:last-child {
+.order-row .order-quantity {
     text-align: right;
+    position: relative;
+    z-index: 2;
+}
+
+/* 호가 수량 막대 그래프 */
+.order-bar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    opacity: 0.15;
+    transition: all 0.3s;
+    z-index: 1;
+}
+
+.order-row:hover .order-bar {
+    opacity: 0.25;
+}
+
+.sell-bar {
+    background: linear-gradient(to left, #dc3545, transparent);
+}
+
+.buy-bar {
+    background: linear-gradient(to left, #28a745, transparent);
+}
+
+/* 스프레드 정보 섹션 */
+.spread-section {
+    background: #f8f9fa;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.spread-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.spread-label {
+    font-size: 0.75em;
+    color: #666;
+    font-weight: 500;
+}
+
+.spread-value {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.total-qty-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-align: right;
+}
+
+.total-qty-info span {
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.sell-total {
+    color: #dc3545;
+}
+
+.buy-total {
+    color: #28a745;
 }
 
 .current-price-section {
@@ -2167,6 +2253,22 @@ body.dark-mode .order-row {
     border-bottom-color: #2a3a5e;
 }
 
+body.dark-mode .order-row:hover {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+body.dark-mode .spread-section {
+    background: #16213e;
+}
+
+body.dark-mode .spread-label {
+    color: #b0b0b0;
+}
+
+body.dark-mode .spread-value {
+    color: #829bff;
+}
+
 body.dark-mode .order-input-section {
     background: #16213e;
 }
@@ -2214,6 +2316,24 @@ body.dark-mode .trade-item {
 
     .order-inputs {
         grid-template-columns: 1fr;
+    }
+
+    .spread-section {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .total-qty-info {
+        text-align: left;
+    }
+
+    .order-row {
+        font-size: 0.85em;
+        padding: 8px 10px;
+    }
+
+    .order-row:hover {
+        transform: none;
     }
 }
 

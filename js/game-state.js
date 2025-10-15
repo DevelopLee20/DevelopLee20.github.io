@@ -187,13 +187,19 @@ export function saveGameState() {
     }
 }
 
+// 거래 체결 처리
+export function processTrades(trades) {
+    // 호가창 시스템에서 주문 매칭은 order-book.js에서 처리되므로
+    // 여기서는 빈 함수로 유지 (향후 체결 로그 등 추가 기능 구현 가능)
+}
+
 // 게임 상태 불러오기
 export function loadGameState() {
     try {
         const savedData = localStorage.getItem('stockGameState');
         if (savedData) {
             const loadedData = JSON.parse(savedData);
-            
+
             // 이전 버전의 cash가 숫자인 경우 객체로 변환
             if (typeof loadedData.gameState.cash === 'number') {
                 loadedData.gameState.cash = { krw: loadedData.gameState.cash, usd: 10000 };

@@ -309,6 +309,23 @@ export function renderOrderBook() {
     // 호가 정보 가져오기
     const orderBookDepth = getOrderBookDepth(currentOrderBookStockId, marketId, 5);
 
+    // 최대 수량 계산 (막대 그래프용)
+    const maxQuantity = Math.max(
+        ...orderBookDepth.sellOrders.map(o => o.quantity),
+        ...orderBookDepth.buyOrders.map(o => o.quantity),
+        1
+    );
+
+    // 총 잔량 계산
+    const totalSellQty = orderBookDepth.sellOrders.reduce((sum, o) => sum + o.quantity, 0);
+    const totalBuyQty = orderBookDepth.buyOrders.reduce((sum, o) => sum + o.quantity, 0);
+
+    // 스프레드 계산
+    const bestBid = orderBookDepth.buyOrders.length > 0 ? orderBookDepth.buyOrders[0].price : null;
+    const bestAsk = orderBookDepth.sellOrders.length > 0 ? orderBookDepth.sellOrders[0].price : null;
+    const spread = bestBid && bestAsk ? bestAsk - bestBid : 0;
+    const spreadPercent = bestBid && bestAsk && bestBid > 0 ? ((spread / bestBid) * 100).toFixed(2) : 0;
+
     // 매도 호가 렌더링 (높은 가격부터)
     const sellOrdersList = document.getElementById('sell-orders-list');
     sellOrdersList.innerHTML = '';
@@ -318,11 +335,14 @@ export function renderOrderBook() {
     } else {
         // 역순으로 표시 (높은 가격이 위로)
         orderBookDepth.sellOrders.slice().reverse().forEach(order => {
+            const barWidth = (order.quantity / maxQuantity * 100).toFixed(1);
             const div = document.createElement('div');
             div.className = 'order-row sell';
+            div.onclick = () => setOrderPrice(order.price);
             div.innerHTML = `
-                <span>${currencySymbol}${formatPrice(order.price)}</span>
-                <span>${order.quantity}</span>
+                <div class="order-bar sell-bar" style="width: ${barWidth}%"></div>
+                <span class="order-price">${currencySymbol}${formatPrice(order.price)}</span>
+                <span class="order-quantity">${order.quantity.toLocaleString()}</span>
             `;
             sellOrdersList.appendChild(div);
         });
@@ -336,15 +356,30 @@ export function renderOrderBook() {
         buyOrdersList.innerHTML = '<div class="no-orders" style="padding: 10px; text-align: center; color: #999;">매수 호가 없음</div>';
     } else {
         orderBookDepth.buyOrders.forEach(order => {
+            const barWidth = (order.quantity / maxQuantity * 100).toFixed(1);
             const div = document.createElement('div');
             div.className = 'order-row buy';
+            div.onclick = () => setOrderPrice(order.price);
             div.innerHTML = `
-                <span>${currencySymbol}${formatPrice(order.price)}</span>
-                <span>${order.quantity}</span>
+                <div class="order-bar buy-bar" style="width: ${barWidth}%"></div>
+                <span class="order-price">${currencySymbol}${formatPrice(order.price)}</span>
+                <span class="order-quantity">${order.quantity.toLocaleString()}</span>
             `;
             buyOrdersList.appendChild(div);
         });
     }
+
+    // 스프레드 및 총 잔량 표시 업데이트
+    document.getElementById('order-book-spread').innerHTML = `
+        <div class="spread-info">
+            <span class="spread-label">스프레드</span>
+            <span class="spread-value">${currencySymbol}${formatPrice(spread)} (${spreadPercent}%)</span>
+        </div>
+        <div class="total-qty-info">
+            <span class="sell-total">매도: ${totalSellQty.toLocaleString()}주</span>
+            <span class="buy-total">매수: ${totalBuyQty.toLocaleString()}주</span>
+        </div>
+    `;
 
     // 미체결 주문 렌더링
     renderPendingOrders(marketId, currencySymbol, formatPrice);
@@ -452,4 +487,20 @@ export function updateOrderBookIfOpen() {
 // 현재 호가창 주식 ID getter
 export function getCurrentOrderBookStockId() {
     return currentOrderBookStockId;
+}
+
+// 호가 클릭 시 주문가격 입력
+function setOrderPrice(price) {
+    const priceInput = document.getElementById('order-price');
+    const stock = findStock(currentOrderBookStockId);
+
+    if (stock) {
+        // 포맷팅된 가격 설정
+        const formattedPrice = stock.market === 'korea' ? Math.round(price / 100) * 100 : price.toFixed(2);
+        priceInput.value = formattedPrice;
+
+        // 지정가 라디오 버튼 자동 선택
+        document.querySelector('input[name="order-method"][value="limit"]').checked = true;
+        priceInput.disabled = false;
+    }
 }
