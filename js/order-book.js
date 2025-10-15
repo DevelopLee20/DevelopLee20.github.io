@@ -1,4 +1,5 @@
 // 호가창 및 주문 매칭 시스템
+import { updateChartIfOpen } from './chart.js';
 
 // 주문장 데이터 구조 {stockId: {buyOrders: [], sellOrders: []}}
 export const orderBook = {
@@ -139,6 +140,11 @@ export function matchOrders(stockId, marketId, stock) {
             // 더 이상 체결 불가
             break;
         }
+    }
+
+    // 거래가 체결되었으면 차트 업데이트
+    if (trades.length > 0) {
+        updateChartIfOpen();
     }
 
     return trades;

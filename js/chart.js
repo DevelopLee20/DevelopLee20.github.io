@@ -1,21 +1,56 @@
 // 차트 관련 기능
 import { findStock } from './stock.js';
 
+// 현재 차트가 표시 중인 주식 ID
+let currentChartStockId = null;
+let chartUpdateInterval = null;
+
 // 차트 모달 표시
 export function showChart(stockId) {
     const stock = findStock(stockId);
     if (!stock) return;
 
+    currentChartStockId = stockId;
     document.getElementById('chart-stock-name').textContent = `${stock.name} 가격 변동 차트`;
     document.getElementById('chart-modal').classList.remove('hidden');
 
     // 약간의 지연 후 차트 그리기 (캔버스 크기가 제대로 잡히도록)
     setTimeout(() => drawChart(stock), 50);
+
+    // 실시간 업데이트 시작 (1초마다)
+    if (chartUpdateInterval) {
+        clearInterval(chartUpdateInterval);
+    }
+    chartUpdateInterval = setInterval(() => {
+        if (currentChartStockId !== null) {
+            const currentStock = findStock(currentChartStockId);
+            if (currentStock) {
+                drawChart(currentStock);
+            }
+        }
+    }, 1000);
 }
 
 // 차트 모달 닫기
 export function closeChart() {
     document.getElementById('chart-modal').classList.add('hidden');
+    currentChartStockId = null;
+
+    // 차트 업데이트 중지
+    if (chartUpdateInterval) {
+        clearInterval(chartUpdateInterval);
+        chartUpdateInterval = null;
+    }
+}
+
+// 차트가 열려있으면 업데이트 (외부에서 호출 가능)
+export function updateChartIfOpen() {
+    if (currentChartStockId !== null) {
+        const stock = findStock(currentChartStockId);
+        if (stock) {
+            drawChart(stock);
+        }
+    }
 }
 
 // 차트 그리기

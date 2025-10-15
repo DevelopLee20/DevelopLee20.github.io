@@ -2,7 +2,7 @@
 import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee, processTrades } from './game-state.js';
 import { markets, createInitialStocks, createNewStock, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock, buyStockWithLeverage, closeLeveragePosition, checkLiquidations, updateStockStateFromOrderBook } from './stock.js';
 import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast, openOrderBook, closeOrderBook, switchOrderType, onOrderMethodChange, updateOrderBookIfOpen, getCurrentOrderBookStockId } from './ui.js';
-import { showChart, closeChart } from './chart.js';
+import { showChart, closeChart, updateChartIfOpen } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
 import { updateAllAITraders, initializeMarketAITraders, resetAITraders, aiTraderPool } from './ai-trader-manager.js';
 import { createOrder, addOrderToBook, matchOrders, cancelOrder, resetOrderBook, getOrderBookDepth, getRecentTrades } from './order-book.js';
@@ -152,6 +152,7 @@ function handleMarketOpen(marketId) {
         renderStocks();
         updatePlayerInfo();
         updateOrderBookIfOpen(); // 호가창이 열려있으면 업데이트
+        updateChartIfOpen(); // 차트가 열려있으면 업데이트
     }, 2000);
 }
 
