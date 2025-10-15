@@ -397,8 +397,8 @@ function submitOrder() {
             return;
         }
     } else {
-        // 시장가: 현재가 기준으로 설정
-        price = orderType === 'buy' ? stock.price * 1.01 : stock.price * 0.99;
+        // 시장가: 즉시 체결을 위해 극단적인 가격으로 설정
+        price = orderType === 'buy' ? stock.price * 1.5 : stock.price * 0.5;
     }
 
     const currency = stock.market === 'korea' ? 'krw' : 'usd';
@@ -425,25 +425,39 @@ function submitOrder() {
     addOrderToBook(order, stock.market);
 
     // 즉시 매칭 시도
-    matchOrders(stock.id, stock.market, stock);
+    const trades = matchOrders(stock.id, stock.market, stock);
+
+    // 플레이어 관련 체결 필터링
+    const playerTrades = trades.filter(t => t.buyUserId === 'player' || t.sellUserId === 'player');
 
     // 체결 확인
     if (order.status === 'filled') {
-        // 완전 체결
+        // 완전 체결 - 실제 체결 가격으로 계산
         if (orderType === 'buy') {
             // 매수: 자금 차감, 주식 추가
-            gameState.cash[currency] -= totalCost;
+            let actualTotalCost = 0;
+            playerTrades.forEach(trade => {
+                if (trade.buyUserId === 'player') {
+                    actualTotalCost += trade.price * trade.quantity;
+                }
+            });
+            gameState.cash[currency] -= actualTotalCost;
             if (!gameState.holdings[stock.id]) {
                 gameState.holdings[stock.id] = { quantity: 0, avgPrice: 0 };
             }
             const holding = gameState.holdings[stock.id];
             const totalPrevCost = holding.avgPrice * holding.quantity;
             holding.quantity += quantity;
-            holding.avgPrice = (totalPrevCost + totalCost) / holding.quantity;
+            holding.avgPrice = (totalPrevCost + actualTotalCost) / holding.quantity;
         } else {
             // 매도: 주식 차감, 자금 증가
-            const revenue = price * quantity * 0.99; // 1% 수수료
-            gameState.cash[currency] += revenue;
+            let actualRevenue = 0;
+            playerTrades.forEach(trade => {
+                if (trade.sellUserId === 'player') {
+                    actualRevenue += trade.price * trade.quantity * 0.99; // 1% 수수료
+                }
+            });
+            gameState.cash[currency] += actualRevenue;
             gameState.holdings[stock.id].quantity -= quantity;
             if (gameState.holdings[stock.id].quantity === 0) {
                 delete gameState.holdings[stock.id];
