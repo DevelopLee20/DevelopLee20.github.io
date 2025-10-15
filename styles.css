@@ -8,15 +8,20 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    height: 100vh;
     padding: 5px;
-    overflow: hidden;
     font-size: var(--base-font-size, 16px);
 }
 
 @media (max-width: 768px) {
     body {
         padding: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 2px;
+        font-size: 15px;
     }
 }
 
@@ -31,8 +36,7 @@ body {
     border-radius: 15px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.3);
     padding: 20px;
-    height: calc(100vh - 20px);
-    overflow-y: auto;
+    min-height: calc(100vh - 10px);
     display: flex;
     flex-direction: column;
 }
@@ -41,6 +45,7 @@ body {
     .container {
         padding: 15px;
         border-radius: 10px;
+        min-height: auto;
     }
 }
 
@@ -107,6 +112,28 @@ h1 {
 
     .info-box p {
         font-size: 1em;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-info {
+        padding: 8px;
+        gap: 6px;
+        flex-direction: row;
+    }
+
+    .info-box {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .info-box h3 {
+        font-size: 0.65em;
+        margin-bottom: 3px;
+    }
+
+    .info-box p {
+        font-size: 0.85em;
     }
 }
 
@@ -197,8 +224,14 @@ h1 {
 @media (max-width: 768px) {
     .stock-item {
         padding: 10px;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stock-item {
+        padding: 8px;
         flex-direction: column;
-        gap: 8px;
         align-items: stretch;
     }
 }
@@ -259,6 +292,24 @@ h1 {
 @media (max-width: 768px) {
     .stock-actions {
         gap: 5px;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .stock-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+    }
+
+    .stock-actions button {
+        font-size: 0.8em;
+        padding: 8px 10px;
+    }
+
+    .stock-actions button:first-child {
+        grid-column: 1 / -1;
     }
 }
 
@@ -454,32 +505,66 @@ button:disabled {
 
 @media (max-width: 768px) {
     .holding-item {
-        padding: 6px;
+        padding: 8px;
         margin-bottom: 5px;
         font-size: 0.85em;
-        flex-wrap: wrap;
     }
 
     .holding-info {
-        flex: 1 1 100%;
+        margin-bottom: 6px;
     }
 
     .holding-value {
-        flex: 1;
+        text-align: left;
+        margin-bottom: 6px;
     }
 
     .holding-actions {
-        flex-shrink: 0;
+        display: flex;
+        gap: 5px;
+        width: 100%;
+    }
+
+    .holding-actions button {
+        flex: 1;
     }
 
     .sell-btn-small {
-        padding: 4px 6px;
-        font-size: 0.75em;
+        padding: 6px 8px;
+        font-size: 0.8em;
     }
 
     .empty-holdings {
         font-size: 0.75em;
         padding: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .holding-item {
+        padding: 10px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .holding-info div:first-child {
+        font-size: 0.95em;
+        font-weight: bold;
+        margin-bottom: 4px;
+    }
+
+    .holding-value {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 6px;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .holding-value > div {
+        font-size: 0.9em;
     }
 }
 
@@ -502,6 +587,29 @@ button:disabled {
     border-radius: 15px;
     text-align: center;
     max-width: 400px;
+}
+
+@media (max-width: 480px) {
+    .game-over-content {
+        padding: 30px 20px;
+        max-width: 90%;
+        margin: 0 10px;
+    }
+
+    .game-over-content h2 {
+        font-size: 2em;
+        margin-bottom: 15px;
+    }
+
+    .game-over-content p {
+        font-size: 1.1em;
+        margin-bottom: 20px;
+    }
+
+    .restart-btn {
+        padding: 12px 30px;
+        font-size: 1em;
+    }
 }
 
 .game-over-content h2 {
@@ -565,6 +673,47 @@ button:disabled {
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .chart-content {
+        padding: 20px;
+        width: 95%;
+        max-height: 85vh;
+        border-radius: 10px;
+    }
+
+    .chart-header {
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .chart-title {
+        font-size: 1.3em;
+        flex: 1 1 100%;
+    }
+
+    .chart-close {
+        padding: 6px 12px;
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-content {
+        padding: 15px;
+        width: 98%;
+        max-height: 90vh;
+    }
+
+    .chart-title {
+        font-size: 1.1em;
+    }
+
+    #price-chart {
+        height: 300px;
+    }
 }
 
 .chart-header {
@@ -879,6 +1028,18 @@ body.dark-mode .reset-btn:hover {
     transition: all 0.3s ease;
 }
 
+@media (max-width: 480px) {
+    .tab-button {
+        padding: 8px 12px;
+        font-size: 0.95em;
+        flex: 1;
+    }
+
+    .market-tabs {
+        margin-bottom: 8px;
+    }
+}
+
 .tab-button:hover {
     background-color: #f8f9fa;
     color: #000;
@@ -924,6 +1085,24 @@ body.dark-mode .tab-button.active {
     margin-bottom: 10px;
 }
 
+@media (max-width: 480px) {
+    .player-info-grid {
+        gap: 8px;
+    }
+
+    .player-info-grid .player-info {
+        padding: 8px;
+    }
+
+    .player-info-grid .player-info h4 {
+        font-size: 0.7em;
+    }
+
+    .player-info-grid .player-info p {
+        font-size: 0.9em;
+    }
+}
+
 .exchange-section {
     background: white;
     padding: 12px;
@@ -935,6 +1114,31 @@ body.dark-mode .tab-button.active {
     color: #666;
     font-size: 0.85em;
     margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+    .exchange-section {
+        padding: 10px;
+        margin-bottom: 8px;
+    }
+
+    .exchange-rate-display {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .exchange-input-container {
+        margin-bottom: 8px;
+    }
+
+    .exchange-input-container label {
+        font-size: 0.85em;
+    }
+
+    .exchange-input-container input {
+        font-size: 0.9em;
+        padding: 6px;
+    }
 }
 
 .exchange-rate-display {
@@ -987,6 +1191,26 @@ body.dark-mode .tab-button.active {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.exchange-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.exchange-input-container input {
+    padding: 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+@media (max-width: 480px) {
+    .exchange-input-container input {
+        padding: 10px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
 }
 
 .slider-container {
@@ -1095,6 +1319,13 @@ body.dark-mode .tab-button.active {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .exchange-buttons {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
 }
 
 .exchange-btn {
@@ -1250,6 +1481,26 @@ body.dark-mode .toast-warning {
     }
 }
 
+@media (max-width: 480px) {
+    .toast-notification {
+        font-size: 0.85em;
+        padding: 10px 16px;
+        top: 8px;
+        max-width: 90%;
+    }
+
+    @keyframes toastSlideIn {
+        0% {
+            top: -50px;
+            opacity: 0;
+        }
+        100% {
+            top: 8px;
+            opacity: 1;
+        }
+    }
+}
+
 /* 레버리지 컨트롤 */
 .leverage-controls {
     display: flex;
@@ -1314,6 +1565,43 @@ body.dark-mode .toast-warning {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .leverage-controls {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .toggle-text {
+        font-size: 0.9em;
+    }
+
+    .ratio-label {
+        padding: 5px 10px;
+        font-size: 0.85em;
+    }
+}
+
+@media (max-width: 480px) {
+    .leverage-ratio-container {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .ratio-label {
+        flex: 1;
+        justify-content: center;
+        padding: 8px;
+    }
+
+    .ratio-label input[type="radio"] {
+        margin: 0;
+    }
+
+    .ratio-label span {
+        font-size: 0.9em;
+    }
 }
 
 .ratio-label {
@@ -1402,6 +1690,93 @@ body.dark-mode .leverage-badge {
 
 body.dark-mode .liquidation-warning {
     background: #3d2828 !important;
+}
+
+/* 추가 모바일 최적화 */
+@media (max-width: 480px) {
+    /* 스크롤 개선 */
+    .stock-list,
+    #holdings-container,
+    #leverage-positions-container {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 터치 영역 개선 */
+    button,
+    .tab-button,
+    .stock-info-clickable {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* 컨테이너 여백 최소화 */
+    .container {
+        padding: 10px;
+        margin: 0;
+    }
+
+    h1 {
+        font-size: 1.3em;
+        margin-bottom: 8px;
+    }
+
+    /* 섹션 제목 크기 조정 */
+    .section-title {
+        font-size: 1em;
+        padding-bottom: 5px;
+    }
+
+    /* 고정 버튼 위치 조정 */
+    .dark-mode-toggle {
+        top: 8px;
+        right: 8px;
+        padding: 6px 12px;
+        font-size: 0.9em;
+    }
+
+    .font-size-controls {
+        top: 45px;
+        right: 8px;
+    }
+
+    .font-size-btn {
+        padding: 5px 8px;
+        font-size: 0.75em;
+    }
+
+    .reset-controls {
+        top: 75px;
+        right: 8px;
+    }
+
+    .reset-btn {
+        padding: 5px 8px;
+        font-size: 0.75em;
+    }
+}
+
+/* 가로 모드 최적화 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .container {
+        min-height: auto;
+    }
+
+    .content-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    h1 {
+        font-size: 1.2em;
+        margin-bottom: 8px;
+    }
+
+    .header-info {
+        padding: 8px;
+        margin-bottom: 8px;
+    }
 }
 
 
