@@ -1,0 +1,69 @@
+/* // TODO: 기본 스타일 및 캔버스 설정 */
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: sans-serif;
+}
+canvas {
+    display: block;
+}
+
+/* // TODO: HUD(Head-Up Display) 스타일 */
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1em;
+    box-sizing: border-box;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+}
+#info {
+    font-size: 1.5em;
+    background: rgba(0,0,0,0.5);
+    padding: 0.5em;
+    border-radius: 5px;
+}
+#info span {
+    margin-right: 1em;
+}
+
+/* // TODO: 컨트롤 버튼 스타일 */
+#controls {
+    position: absolute;
+    bottom: 2em;
+    right: 2em;
+}
+#drop-button {
+    width: 80px;
+    height: 80px;
+    font-size: 1.2em;
+    border-radius: 50%;
+    background-color: red;
+    color: white;
+    border: none;
+}
+
+/* // TODO: 모달 창 스타일 */
+#modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#modal-content {
+    background: white;
+    padding: 2em;
+    border-radius: 10px;
+    text-align: center;
+}
+.hidden {
+    display: none;
+}

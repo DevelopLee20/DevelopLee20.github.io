@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Claw Machine</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- // TODO: 3D 렌더링을 위한 Canvas -->
+    <canvas id="bg"></canvas>
+
+    <!-- // TODO: UI 요소들을 담을 HUD 컨테이너 -->
+    <div id="hud">
+        <div id="info">
+            <span>Coins: <span id="coins">1</span></span>
+            <span>Time: <span id="timer">30</span></span>
+            <span>Score: <span id="score">0</span></span>
+        </div>
+        <div id="controls">
+            <!-- // TODO: 모바일용 컨트롤 버튼 -->
+            <button id="drop-button">Drop</button>
+        </div>
+    </div>
+
+    <!-- // TODO: 게임 시작/종료 등을 알리는 모달 -->
+    <div id="modal" class="hidden">
+        <div id="modal-content">
+            <h2>Game Over</h2>
+            <p>Play Again?</p>
+            <button id="start-button">Insert Coin</button>
+        </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
