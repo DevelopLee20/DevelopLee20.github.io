@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start index.html)",
+      "Bash(start msedge index.html)",
+      "Bash(python:*)",
+      "Bash(timeout:*)",
+      "Bash(start http://localhost:8000)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
