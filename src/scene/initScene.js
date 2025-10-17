@@ -14,8 +14,8 @@ export function initScene(sceneOpts = {}) {
 
     // Camera 생성 - 기계 내부를 비추는 사선 시점
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(8, 10, 8);
-    camera.lookAt(0, 0, 0); // 원점을 바라보도록 설정
+    camera.position.set(2, 2.5, 2);
+    camera.lookAt(0, 0.5, 0); // 캐비닛 내부의 중심을 바라보도록 조정
 
     // Renderer 생성
     const renderer = new THREE.WebGLRenderer({
