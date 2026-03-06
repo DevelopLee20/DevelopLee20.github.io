@@ -1,9 +1,10 @@
 // 메인 게임 로직
-import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw, calculateExchangeFee, processTrades } from './game-state.js';
-import { markets, createInitialStocks, createNewStock, buyStock, sellStock, sellAllStock, resetStocks, getActiveStocksCount, findStock, buyStockWithLeverage, closeLeveragePosition, checkLiquidations, updateStockPrices, shortSellStock, coverShortPosition } from './stock.js';
-import { updateTimeDisplay, updateMarketStatus, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast } from './ui.js';
+import { gameState, resetGameState, getTotalAssets, openMarket, closeMarket, endGame, saveGameState, loadGameState, updateExchangeRate, exchangeKrwToUsd, exchangeUsdToKrw } from './game-state.js';
+import { markets, createInitialStocks, createNewStock, resetStocks, getActiveStocksCount, findStock, getMarketCap, startStockSession, closeStockSession, buyStockWithLeverage, closeLeveragePosition, checkLiquidations, shortSellStock, coverShortPosition } from './stock.js';
+import { updateTimeDisplay, updateMarketStatus, updateMarketSessionChange, renderStocks, updatePlayerInfo, showGameOver, hideGameOver, switchTab, showToast, initializeTradingPanel, selectStock, getSelectedStockId, refreshSelectedStockPanel } from './ui.js';
 import { showChart, closeChart, updateChartIfOpen } from './chart.js';
 import { toggleDarkMode, loadDarkMode, cycleFontSize, loadFontSize } from './settings.js';
+import { initializeMarketSimulation, loadMarketSimulationState, saveMarketSimulationState, resetMarketSimulation, simulateMarketTick, executePlayerMarketBuy, executePlayerMarketSell, clearMarketSimulationOrders } from './market-simulator.js';
 
 // 타이머 관련
 const priceUpdateIntervals = {
@@ -27,6 +28,95 @@ const marketHours = {
     }
 };
 
+function ensureMarketSessionState(marketId) {
+    if (!gameState.marketSessionStats) {
+        gameState.marketSessionStats = {};
+    }
+
+    if (!gameState.marketSessionStats[marketId]) {
+        gameState.marketSessionStats[marketId] = {
+            sessionStartValue: 0,
+            currentChange: 0,
+            currentChangePct: 0,
+            lastChange: 0,
+            lastChangePct: 0
+        };
+    }
+
+    return gameState.marketSessionStats[marketId];
+}
+
+function getMarketTotalValue(marketId) {
+    return markets[marketId].reduce((total, stock) => total + getMarketCap(stock), 0);
+}
+
+function startStockSessions(marketId) {
+    markets[marketId].forEach(stock => {
+        startStockSession(stock);
+    });
+}
+
+function closeStockSessions(marketId) {
+    markets[marketId].forEach(stock => {
+        closeStockSession(stock);
+    });
+}
+
+function refreshMarketSessionDisplay(marketId) {
+    const sessionStats = ensureMarketSessionState(marketId);
+    const isOpen = gameState.marketStatus[marketId].isOpen;
+    const changeAmount = isOpen ? sessionStats.currentChange : sessionStats.lastChange;
+    const changePct = isOpen ? sessionStats.currentChangePct : sessionStats.lastChangePct;
+    updateMarketSessionChange(marketId, changeAmount, changePct, isOpen);
+}
+
+function startMarketSession(marketId) {
+    const sessionStats = ensureMarketSessionState(marketId);
+    sessionStats.sessionStartValue = getMarketTotalValue(marketId);
+    sessionStats.currentChange = 0;
+    sessionStats.currentChangePct = 0;
+    refreshMarketSessionDisplay(marketId);
+}
+
+function updateMarketSessionStats(marketId) {
+    const sessionStats = ensureMarketSessionState(marketId);
+    const currentTotalValue = getMarketTotalValue(marketId);
+
+    if (sessionStats.sessionStartValue <= 0) {
+        sessionStats.sessionStartValue = currentTotalValue;
+    }
+
+    sessionStats.currentChange = currentTotalValue - sessionStats.sessionStartValue;
+    sessionStats.currentChangePct = sessionStats.sessionStartValue === 0
+        ? 0
+        : (sessionStats.currentChange / sessionStats.sessionStartValue) * 100;
+
+    refreshMarketSessionDisplay(marketId);
+}
+
+function closeMarketSession(marketId) {
+    const sessionStats = ensureMarketSessionState(marketId);
+    updateMarketSessionStats(marketId);
+    sessionStats.lastChange = sessionStats.currentChange;
+    sessionStats.lastChangePct = sessionStats.currentChangePct;
+    sessionStats.sessionStartValue = 0;
+    sessionStats.currentChange = 0;
+    sessionStats.currentChangePct = 0;
+    updateMarketSessionChange(marketId, sessionStats.lastChange, sessionStats.lastChangePct, false);
+}
+
+function getPreferredMarketTab() {
+    if (gameState.marketStatus.korea.isOpen) {
+        return 'korea';
+    }
+
+    if (gameState.marketStatus.usa.isOpen) {
+        return 'usa';
+    }
+
+    return 'korea';
+}
+
 // 초기화
 function init() {
     loadDarkMode();
@@ -36,26 +126,31 @@ function init() {
         createInitialStocks();
         console.log('새 게임을 시작합니다.');
     }
+    loadMarketSimulationState();
+    initializeMarketSimulation(gameState.exchangeRate);
 
-    switchTab('korea'); // 기본 탭 설정
     updateTime();
-
-    // 시장 상태 업데이트 및 개장 중인 시장의 가격 업데이트 시작
     Object.keys(gameState.marketStatus).forEach(marketId => {
         updateMarketStatus(marketId, gameState.marketStatus[marketId].isOpen);
-
-        // 이미 개장 중인 시장이면 가격 업데이트 시작
-        if (gameState.marketStatus[marketId].isOpen) {
+        refreshMarketSessionDisplay(marketId);
+        if (gameState.marketStatus[marketId].isOpen && !priceUpdateIntervals[marketId]) {
             handleMarketOpen(marketId);
         }
     });
+    switchTab(getPreferredMarketTab());
+    initializeTradingPanel();
 
     renderStocks();
     updatePlayerInfo();
     initExchangeSlider();
 
     setInterval(updateTime, 1000);
-    window.addEventListener('beforeunload', saveGameState);
+    window.addEventListener('beforeunload', saveAllState);
+}
+
+function saveAllState() {
+    saveGameState();
+    saveMarketSimulationState();
 }
 
 // 시간 업데이트 및 게임 로직
@@ -76,7 +171,16 @@ function updateTime() {
     if (minutes !== lastStockCreationMinute) {
         Object.keys(marketHours).forEach(marketId => {
             if (minutes % marketHours[marketId].newStockInterval === 0) {
-                createNewStock(marketId);
+                const newStock = createNewStock(marketId);
+                if (newStock) {
+                    initializeMarketSimulation(gameState.exchangeRate);
+                    if (gameState.marketStatus[marketId].isOpen) {
+                        startStockSession(newStock);
+                        const sessionStats = ensureMarketSessionState(marketId);
+                        sessionStats.sessionStartValue += getMarketCap(newStock);
+                        updateMarketSessionStats(marketId);
+                    }
+                }
             }
         });
         renderStocks();
@@ -106,18 +210,26 @@ function handleMarketOpen(marketId) {
     console.log(`시장 개장: ${marketId}`);
     openMarket(marketId);
     updateMarketStatus(marketId, true);
+    initializeMarketSimulation(gameState.exchangeRate);
 
     if (getActiveStocksCount(marketId) < 10) {
         createNewStock(marketId);
+        initializeMarketSimulation(gameState.exchangeRate);
     }
 
+    startMarketSession(marketId);
+    startStockSessions(marketId);
+    simulateMarketTick(marketId, gameState.exchangeRate);
+    updateMarketSessionStats(marketId);
     renderStocks();
+    updatePlayerInfo();
 
-    // 2초마다 주가 업데이트
+    // 2초마다 주문장 리빌드 및 체결
     if (priceUpdateIntervals[marketId]) clearInterval(priceUpdateIntervals[marketId]);
     priceUpdateIntervals[marketId] = setInterval(() => {
-        // 1. 주가 랜덤 변동 (-5% ~ +5%)
-        updateStockPrices(marketId);
+        // 1. 주문장 기반 가격 형성
+        simulateMarketTick(marketId, gameState.exchangeRate);
+        updateMarketSessionStats(marketId);
 
         // 2. 레버리지 및 숏 청산 체크
         const liquidatedPositions = checkLiquidations(gameState);
@@ -138,14 +250,18 @@ function handleMarketOpen(marketId) {
 
 // 시장 휴장 처리
 function handleMarketClose(marketId) {
+    closeMarketSession(marketId);
+    closeStockSessions(marketId);
     closeMarket(marketId);
     updateMarketStatus(marketId, false);
+    clearMarketSimulationOrders(marketId);
 
     if (priceUpdateIntervals[marketId]) {
         clearInterval(priceUpdateIntervals[marketId]);
         priceUpdateIntervals[marketId] = null;
     }
     renderStocks();
+    updatePlayerInfo();
 }
 
 // 환전 기능 초기화 (슬라이더 제거됨)
@@ -223,11 +339,19 @@ function buyStockHandler(stockId, quantity = 1) {
             }
         }
     } else {
-        const result = buyStock(stockId, quantity, gameState);
+        const result = executePlayerMarketBuy(stockId, quantity);
         if (result.success) {
             updatePlayerInfo();
             renderStocks();
-            showToast(`${result.stockName} ${quantity}주 매수 완료!`);
+            const stock = findStock(stockId);
+            const currencySymbol = stock.market === 'korea' ? '₩' : '$';
+            const averagePrice = stock.market === 'korea'
+                ? Math.round(result.averagePrice).toLocaleString()
+                : result.averagePrice.toFixed(2);
+            const fillText = result.partial
+                ? `${result.filledQuantity}/${result.requestedQuantity}주 부분 체결`
+                : `${result.filledQuantity}주 체결`;
+            showToast(`${result.stockName} ${fillText} @ ${currencySymbol}${averagePrice}`);
         } else if (result.message) {
             showToast(result.message, 'error');
         }
@@ -266,53 +390,183 @@ function coverShortPositionHandler(positionId) {
 
 // 주식 매도 핸들러
 function sellStockHandler(stockId) {
-    const stock = findStock(stockId); // 매도 전에 주식 정보 가져오기
-    const result = sellStock(stockId, 1, gameState);
+    const stock = findStock(stockId);
+    const result = executePlayerMarketSell(stockId, 1);
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
         const currencySymbol = stock.market === 'korea' ? '₩' : '$';
-        const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
-        showToast(`${result.stockName} 1주 매도 완료! (수수료: ${currencySymbol}${feeAmount})`);
+        const averagePrice = stock.market === 'korea'
+            ? Math.round(result.averagePrice).toLocaleString()
+            : result.averagePrice.toFixed(2);
+        showToast(`${result.stockName} ${result.filledQuantity}주 매도 체결 @ ${currencySymbol}${averagePrice}`);
+    } else if (result.message) {
+        showToast(result.message, 'error');
     }
 }
 
 // 주식 전체 매도 핸들러
 function sellAllStockHandler(stockId) {
-    console.log('sellAllStockHandler 시작 - stockId:', stockId);
-    const stock = findStock(stockId); // 매도 전에 주식 정보 가져오기
-    console.log('stock:', stock);
+    const stock = findStock(stockId);
 
     if (!stock) {
         showToast('주식을 찾을 수 없습니다.', 'error');
         return;
     }
 
-    const result = sellAllStock(stockId, gameState);
-    console.log('result:', result);
+    const quantity = gameState.holdings[stockId]?.quantity || 0;
+    const result = executePlayerMarketSell(stockId, quantity);
     if (result.success) {
         updatePlayerInfo();
         renderStocks();
         const currencySymbol = stock.market === 'korea' ? '₩' : '$';
-        const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
-        console.log('전량 매도 디버그:', {
-            stockName: result.stockName,
-            quantity: result.quantity,
-            fee: result.fee,
-            feeAmount: feeAmount,
-            currencySymbol: currencySymbol,
-            market: stock.market
-        });
-        const message = `${result.stockName} ${result.quantity}주 전량 매도 완료! (수수료: ${currencySymbol}${feeAmount})`;
-        console.log('토스트 메시지:', message);
+        const averagePrice = stock.market === 'korea'
+            ? Math.round(result.averagePrice).toLocaleString()
+            : result.averagePrice.toFixed(2);
+        const fillText = result.partial
+            ? `${result.filledQuantity}/${result.requestedQuantity}주 부분 체결`
+            : `${result.filledQuantity}주 전량 체결`;
+        const message = `${result.stockName} ${fillText} @ ${currencySymbol}${averagePrice}`;
         showToast(message);
     } else {
-        console.log('매도 실패');
-        showToast('매도에 실패했습니다.', 'error');
+        showToast(result.message || '매도에 실패했습니다.', 'error');
     }
 }
 
 // 게임 오버 처리
+function getSelectedOrderQuantity() {
+    const quantityInput = document.getElementById('selected-order-quantity');
+    const parsedQuantity = parseInt(quantityInput?.value || '1', 10);
+    return Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
+}
+
+function setOrderQuantity(quantity) {
+    const quantityInput = document.getElementById('selected-order-quantity');
+    if (!quantityInput) {
+        return;
+    }
+
+    quantityInput.value = String(Math.max(1, Math.floor(quantity)));
+    refreshSelectedStockPanel();
+}
+
+function setOrderToMax() {
+    const stockId = getSelectedStockId();
+    const stock = findStock(stockId);
+    if (!stock) {
+        showToast('종목을 먼저 선택하세요.', 'warning');
+        return;
+    }
+
+    const quantityInput = document.getElementById('selected-order-quantity');
+    const currency = stock.market === 'korea' ? 'krw' : 'usd';
+    const availableHolding = gameState.holdings[stockId]?.quantity || 0;
+    const affordableQuantity = Math.max(1, Math.floor(gameState.cash[currency] / Math.max(stock.price, 1)));
+    const targetQuantity = availableHolding > 0 ? availableHolding : affordableQuantity;
+
+    if (quantityInput) {
+        quantityInput.value = String(Math.max(1, targetQuantity));
+    }
+    refreshSelectedStockPanel();
+}
+
+function submitSelectedOrder(direction) {
+    const stockId = getSelectedStockId();
+    const stock = findStock(stockId);
+    if (!stock) {
+        showToast('종목을 먼저 선택하세요.', 'warning');
+        return;
+    }
+
+    const quantity = getSelectedOrderQuantity();
+    if (direction === 'buy') {
+        const result = executePlayerMarketBuy(stockId, quantity);
+        if (result.success) {
+            updatePlayerInfo();
+            renderStocks();
+            const averagePrice = stock.market === 'korea'
+                ? Math.round(result.averagePrice).toLocaleString()
+                : result.averagePrice.toFixed(2);
+            const fillText = result.partial
+                ? `${result.filledQuantity}/${result.requestedQuantity}주 부분 체결`
+                : `${result.filledQuantity}주 체결`;
+            showToast(`${result.stockName} ${fillText} @ ${stock.market === 'korea' ? '₩' : '$'}${averagePrice}`);
+        } else if (result.message) {
+            showToast(result.message, 'error');
+        }
+        return;
+    }
+
+    const result = executePlayerMarketSell(stockId, quantity);
+    if (result.success) {
+        updatePlayerInfo();
+        renderStocks();
+        const averagePrice = stock.market === 'korea'
+            ? Math.round(result.averagePrice).toLocaleString()
+            : result.averagePrice.toFixed(2);
+        const fillText = result.partial
+            ? `${result.filledQuantity}/${result.requestedQuantity}주 부분 체결`
+            : `${result.filledQuantity}주 체결`;
+        showToast(`${result.stockName} ${fillText} @ ${stock.market === 'korea' ? '₩' : '$'}${averagePrice}`);
+    } else if (result.message) {
+        showToast(result.message, 'error');
+    }
+}
+
+function submitSelectedLeverageOrder() {
+    const leverageEnabled = document.getElementById('leverage-toggle')?.checked;
+    if (!leverageEnabled) {
+        showToast('레버리지/숏 주문을 켜야 합니다.', 'warning');
+        return;
+    }
+
+    const stockId = getSelectedStockId();
+    const stock = findStock(stockId);
+    if (!stock) {
+        showToast('종목을 먼저 선택하세요.', 'warning');
+        return;
+    }
+
+    const quantity = getSelectedOrderQuantity();
+    const direction = document.querySelector('input[name="leverage-direction"]:checked')?.value || 'long';
+    const leverage = parseInt(document.querySelector('input[name="leverage-ratio"]:checked')?.value || '2', 10);
+
+    if (direction === 'short') {
+        const result = shortSellStock(stockId, quantity, gameState);
+        if (result.success) {
+            updatePlayerInfo();
+            renderStocks();
+            const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
+            const liquidationPrice = stock.market === 'korea' ? Math.floor(result.liquidationPrice).toLocaleString() : result.liquidationPrice.toFixed(2);
+            showToast(`${result.stockName} ${quantity}주 숏 진입 완료 (수수료 ${stock.market === 'korea' ? '₩' : '$'}${feeAmount}, 청산가 ${stock.market === 'korea' ? '₩' : '$'}${liquidationPrice})`);
+        } else if (result.message) {
+            showToast(result.message, 'error');
+        }
+        return;
+    }
+
+    const result = buyStockWithLeverage(stockId, quantity, leverage, gameState);
+    if (result.success) {
+        updatePlayerInfo();
+        renderStocks();
+        const feeAmount = stock.market === 'korea' ? Math.floor(result.fee).toLocaleString() : result.fee.toFixed(2);
+        const liquidationPrice = stock.market === 'korea' ? Math.floor(result.liquidationPrice).toLocaleString() : result.liquidationPrice.toFixed(2);
+        showToast(`${result.stockName} ${quantity}주 ${leverage}x 롱 진입 완료 (수수료 ${stock.market === 'korea' ? '₩' : '$'}${feeAmount}, 청산가 ${stock.market === 'korea' ? '₩' : '$'}${liquidationPrice})`);
+    } else if (result.message) {
+        showToast(result.message, 'error');
+    }
+}
+
+function openSelectedChart() {
+    const stockId = getSelectedStockId();
+    if (stockId === null || stockId === undefined) {
+        showToast('차트를 볼 종목을 먼저 선택하세요.', 'warning');
+        return;
+    }
+
+    showChart(stockId);
+}
+
 function handleGameOver(message) {
     endGame();
     showGameOver(message);
@@ -334,15 +588,17 @@ function handleGameOver(message) {
 function restartGameHandler() {
     resetGameState();
     resetStocks();
-    resetAITraders();
-    resetOrderBook();
+    resetMarketSimulation();
     lastStockCreationMinute = -1;
     lastExchangeRateUpdateSecond = -1;
 
     hideGameOver();
     createInitialStocks();
+    initializeMarketSimulation(gameState.exchangeRate);
+    switchTab(getPreferredMarketTab());
     updatePlayerInfo();
     renderStocks();
+    refreshSelectedStockPanel();
 }
 
 
@@ -350,6 +606,7 @@ function restartGameHandler() {
 function resetLife() {
     if (confirm('정말로 인생을 리셋하시겠습니까?\n모든 저장된 데이터가 삭제되고 초기 상태로 돌아갑니다.')) {
         // 로컬 스토리지 완전 초기화
+        window.removeEventListener('beforeunload', saveAllState);
         localStorage.clear();
 
         // 페이지 새로고침하여 모든 상태를 완전히 초기화
@@ -366,10 +623,16 @@ window.closeLeveragePositionHandler = closeLeveragePositionHandler;
 window.coverShortPositionHandler = coverShortPositionHandler;
 window.restartGame = restartGameHandler;
 window.showChart = showChart;
+window.openSelectedChart = openSelectedChart;
 window.closeChart = closeChart;
 window.toggleDarkMode = toggleDarkMode;
 window.cycleFontSize = cycleFontSize;
 window.switchTab = switchTab;
+window.selectStock = selectStock;
+window.setOrderQuantity = setOrderQuantity;
+window.setOrderToMax = setOrderToMax;
+window.submitSelectedOrder = submitSelectedOrder;
+window.submitSelectedLeverageOrder = submitSelectedLeverageOrder;
 window.exchangeHandler = exchangeHandler;
 window.resetLife = resetLife;
 

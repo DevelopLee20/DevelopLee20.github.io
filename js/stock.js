@@ -5,6 +5,8 @@ export let markets = {
     usa: []
 };
 let stockIdCounter = 0;
+const MIN_TOTAL_SHARES = 1000;
+const MAX_TOTAL_SHARES = 10000;
 
 // stockIdCounter를 설정하는 함수 (게임 로드 시 사용)
 export function setStockIdCounter(value) {
@@ -25,6 +27,170 @@ const STOCK_NAMES = {
     korea: KOREAN_STOCK_NAMES,
     usa: US_STOCK_NAMES
 };
+
+function createTotalShares(minShares = MIN_TOTAL_SHARES) {
+    const lowerBound = Math.max(MIN_TOTAL_SHARES, Math.floor(minShares));
+    const upperBound = Math.max(MAX_TOTAL_SHARES, lowerBound);
+    return Math.floor(Math.random() * (upperBound - lowerBound + 1)) + lowerBound;
+}
+
+function createStockSessionStats() {
+    return {
+        sessionStartPrice: null,
+        lastSessionChange: 0,
+        lastSessionChangePct: 0
+    };
+}
+
+export function ensureStockSessionStats(stock) {
+    if (!stock) {
+        return null;
+    }
+
+    const defaults = createStockSessionStats();
+    stock.sessionStartPrice = Number.isFinite(stock.sessionStartPrice) && stock.sessionStartPrice > 0
+        ? stock.sessionStartPrice
+        : null;
+    stock.lastSessionChange = Number.isFinite(stock.lastSessionChange)
+        ? stock.lastSessionChange
+        : defaults.lastSessionChange;
+    stock.lastSessionChangePct = Number.isFinite(stock.lastSessionChangePct)
+        ? stock.lastSessionChangePct
+        : defaults.lastSessionChangePct;
+
+    return stock;
+}
+
+export function startStockSession(stock) {
+    ensureStockSessionStats(stock);
+    if (!stock) {
+        return;
+    }
+
+    stock.sessionStartPrice = stock.price;
+}
+
+export function getCurrentStockSessionChange(stock) {
+    ensureStockSessionStats(stock);
+    if (!stock || stock.sessionStartPrice === null) {
+        return {
+            changeAmount: 0,
+            changePct: 0
+        };
+    }
+
+    const changeAmount = stock.price - stock.sessionStartPrice;
+    const changePct = stock.sessionStartPrice === 0
+        ? 0
+        : (changeAmount / stock.sessionStartPrice) * 100;
+
+    return {
+        changeAmount,
+        changePct
+    };
+}
+
+export function closeStockSession(stock) {
+    ensureStockSessionStats(stock);
+    if (!stock) {
+        return;
+    }
+
+    const { changeAmount, changePct } = getCurrentStockSessionChange(stock);
+    stock.lastSessionChange = changeAmount;
+    stock.lastSessionChangePct = changePct;
+    stock.sessionStartPrice = null;
+}
+
+export function getStockSessionChange(stock, isOpen) {
+    ensureStockSessionStats(stock);
+    if (!stock) {
+        return {
+            changeAmount: 0,
+            changePct: 0
+        };
+    }
+
+    if (isOpen) {
+        return getCurrentStockSessionChange(stock);
+    }
+
+    return {
+        changeAmount: stock.lastSessionChange,
+        changePct: stock.lastSessionChangePct
+    };
+}
+
+function getCommittedLongShares(stockId, gameState) {
+    const directHoldingQuantity = gameState.holdings[stockId]?.quantity || 0;
+    const leveragedQuantity = gameState.leveragedPositions.reduce((total, position) => {
+        return total + (position.stockId === stockId ? position.quantity : 0);
+    }, 0);
+
+    return directHoldingQuantity + leveragedQuantity;
+}
+
+function getCommittedShortShares(stockId, gameState) {
+    return gameState.shortPositions.reduce((total, position) => {
+        return total + (position.stockId === stockId ? position.quantity : 0);
+    }, 0);
+}
+
+function getAvailableShortShares(stockId, gameState) {
+    const stock = findStock(stockId);
+    if (!stock) {
+        return 0;
+    }
+
+    return Math.max(0, stock.totalShares - getCommittedShortShares(stockId, gameState));
+}
+
+export function ensureStockMetadata(stock, minTotalShares = MIN_TOTAL_SHARES) {
+    if (!stock) {
+        return null;
+    }
+
+    const requiredTotalShares = Math.max(MIN_TOTAL_SHARES, Math.floor(minTotalShares));
+    const currentTotalShares = Number.isFinite(stock.totalShares) ? Math.floor(stock.totalShares) : 0;
+
+    if (currentTotalShares <= 0) {
+        stock.totalShares = createTotalShares(requiredTotalShares);
+    } else if (currentTotalShares < requiredTotalShares) {
+        stock.totalShares = requiredTotalShares;
+    } else {
+        stock.totalShares = currentTotalShares;
+    }
+
+    if (!Number.isFinite(stock.prevPrice)) {
+        stock.prevPrice = stock.price;
+    }
+
+    if (!Array.isArray(stock.priceHistory)) {
+        stock.priceHistory = [{ time: Date.now(), price: stock.price }];
+    }
+
+    ensureStockSessionStats(stock);
+
+    return stock;
+}
+
+export function getMarketCap(stock) {
+    if (!stock) {
+        return 0;
+    }
+
+    ensureStockMetadata(stock);
+    return stock.price * stock.totalShares;
+}
+
+export function getAvailableShares(stockId, gameState) {
+    const stock = findStock(stockId);
+    if (!stock) {
+        return 0;
+    }
+
+    return Math.max(0, stock.totalShares - getCommittedLongShares(stockId, gameState));
+}
 
 // 초기 주식 생성
 export function createInitialStocks() {
@@ -59,6 +225,8 @@ export function createNewStock(marketId) {
         name: availableNames[Math.floor(Math.random() * availableNames.length)],
         price: initialPrice,
         prevPrice: 0,
+        totalShares: createTotalShares(),
+        ...createStockSessionStats(),
         priceHistory: [] // 가격 변동 이력
     };
     stock.prevPrice = stock.price;
@@ -106,6 +274,14 @@ export function buyStock(stockId, quantity, gameState) {
     const totalCost = stock.price * quantity;
     const currency = stock.market === 'korea' ? 'krw' : 'usd';
     const currencyName = currency === 'krw' ? '원' : '달러';
+    const availableShares = getAvailableShares(stockId, gameState);
+
+    if (quantity > availableShares) {
+        return {
+            success: false,
+            message: `매수 가능 물량이 부족합니다! (남은 수량: ${availableShares.toLocaleString()}주)`
+        };
+    }
 
     if (gameState.cash[currency] >= totalCost) {
         gameState.cash[currency] -= totalCost;
@@ -200,6 +376,14 @@ export function buyStockWithLeverage(stockId, quantity, leverage, gameState) {
     const totalCost = stock.price * quantity;
     const currency = stock.market === 'korea' ? 'krw' : 'usd';
     const currencyName = currency === 'krw' ? '원' : '달러';
+    const availableShares = getAvailableShares(stockId, gameState);
+
+    if (quantity > availableShares) {
+        return {
+            success: false,
+            message: `레버리지 매수 가능 물량이 부족합니다! (남은 수량: ${availableShares.toLocaleString()}주)`
+        };
+    }
 
     // 필요한 자본금 = 총 비용 / 레버리지
     const ownCapital = totalCost / leverage;
@@ -342,6 +526,14 @@ export function shortSellStock(stockId, quantity, gameState) {
     const totalValue = stock.price * quantity;
     const currency = stock.market === 'korea' ? 'krw' : 'usd';
     const currencyName = currency === 'krw' ? '원' : '달러';
+    const availableShortShares = getAvailableShortShares(stockId, gameState);
+
+    if (quantity > availableShortShares) {
+        return {
+            success: false,
+            message: `숏 포지션 가능 물량이 부족합니다! (남은 수량: ${availableShortShares.toLocaleString()}주)`
+        };
+    }
 
     // 필요한 증거금 = 주식 가치의 50%
     const margin = totalValue * 0.5;

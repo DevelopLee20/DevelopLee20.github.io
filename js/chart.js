@@ -1,169 +1,248 @@
-// 차트 관련 기능
-import { findStock } from './stock.js';
+import { findStock, getMarketCap } from './stock.js';
+import { getStockMarketSnapshot } from './market-simulator.js';
 
-// 현재 차트가 표시 중인 주식 ID
-let currentChartStockId = null;
-let chartUpdateInterval = null;
+let expandedChartStockId = null;
 
-// 차트 모달 표시
-export function showChart(stockId) {
-    const stock = findStock(stockId);
-    if (!stock) return;
-
-    currentChartStockId = stockId;
-    document.getElementById('chart-stock-name').textContent = `${stock.name} 가격 변동 차트`;
-    document.getElementById('chart-modal').classList.remove('hidden');
-
-    // 약간의 지연 후 차트 그리기 (캔버스 크기가 제대로 잡히도록)
-    setTimeout(() => drawChart(stock), 50);
-
-    // 실시간 업데이트 시작 (1초마다)
-    if (chartUpdateInterval) {
-        clearInterval(chartUpdateInterval);
+function formatStockCurrency(stock, amount) {
+    if (amount === null || amount === undefined || Number.isNaN(amount)) {
+        return '--';
     }
-    chartUpdateInterval = setInterval(() => {
-        if (currentChartStockId !== null) {
-            const currentStock = findStock(currentChartStockId);
-            if (currentStock) {
-                drawChart(currentStock);
-            }
-        }
-    }, 1000);
+
+    if (stock.market === 'korea') {
+        return `₩${Math.round(Math.abs(amount)).toLocaleString()}`;
+    }
+
+    return `$${Math.abs(amount).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })}`;
 }
 
-// 차트 모달 닫기
-export function closeChart() {
-    document.getElementById('chart-modal').classList.add('hidden');
-    currentChartStockId = null;
-
-    // 차트 업데이트 중지
-    if (chartUpdateInterval) {
-        clearInterval(chartUpdateInterval);
-        chartUpdateInterval = null;
-    }
+function formatSignedStockCurrency(stock, amount) {
+    const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
+    return `${sign}${formatStockCurrency(stock, amount)}`;
 }
 
-// 차트가 열려있으면 업데이트 (외부에서 호출 가능)
-export function updateChartIfOpen() {
-    if (currentChartStockId !== null) {
-        const stock = findStock(currentChartStockId);
-        if (stock) {
-            drawChart(stock);
-        }
-    }
+function isDarkMode() {
+    return document.body.classList.contains('dark-mode');
 }
 
-// 차트 그리기
-function drawChart(stock) {
-    const canvas = document.getElementById('price-chart');
-    const ctx = canvas.getContext('2d');
+function getChartPalette() {
+    if (isDarkMode()) {
+        return {
+            frame: '#0f172a',
+            surface: '#182033',
+            grid: '#263042',
+            axis: '#697386',
+            text: '#f9fafb',
+            line: '#4f8cff',
+            point: '#3182f6',
+            priceUp: '#f04452',
+            priceDown: '#3182f6',
+            border: '#2b3547'
+        };
+    }
 
-    // 캔버스 크기 설정 (고정 크기 사용)
-    const containerWidth = canvas.parentElement.offsetWidth - 60; // padding 고려
-    canvas.width = containerWidth;
-    canvas.height = 400;
+    return {
+        frame: '#f9fafb',
+        surface: '#ffffff',
+        grid: '#edf2f7',
+        axis: '#8b95a1',
+        text: '#191f28',
+        line: '#3182f6',
+        point: '#3182f6',
+        priceUp: '#f04452',
+        priceDown: '#3182f6',
+        border: '#e5e8eb'
+    };
+}
 
-    const padding = 50;
-    const width = canvas.width - padding * 2;
-    const height = canvas.height - padding * 2;
-
-    // 캔버스 초기화
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (stock.priceHistory.length < 2) {
-        ctx.fillStyle = '#999';
-        ctx.font = '16px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('가격 변동 데이터가 충분하지 않습니다', canvas.width / 2, canvas.height / 2);
+function renderModalDetails(stock) {
+    const container = document.getElementById('chart-stock-details');
+    if (!container || !stock) {
         return;
     }
 
-    // 가격 범위 계산
-    const prices = stock.priceHistory.map(h => h.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const priceRange = maxPrice - minPrice || 1;
+    const snapshot = getStockMarketSnapshot(stock.id, stock.market);
+    const priceChange = stock.price - stock.prevPrice;
+    const priceChangePercent = stock.prevPrice === 0 ? 0 : (priceChange / stock.prevPrice) * 100;
+    const directionClass = priceChange > 0 ? 'price-up' : priceChange < 0 ? 'price-down' : 'neutral';
+    const spreadText = snapshot.spreadPct !== null ? `${snapshot.spreadPct.toFixed(2)}%` : '--';
 
-    // 화폐 기호 결정
-    const currencySymbol = stock.market === 'korea' ? '₩' : '$';
-    const formatPrice = (price) => stock.market === 'korea' ? Math.round(price).toLocaleString() : price.toFixed(2);
+    container.innerHTML = `
+        <div class="summary-card">
+            <span class="summary-label">현재가</span>
+            <strong class="summary-value">${formatStockCurrency(stock, stock.price)}</strong>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">전일대비</span>
+            <strong class="summary-value ${directionClass}">${formatSignedStockCurrency(stock, priceChange)} (${priceChangePercent >= 0 ? '+' : ''}${priceChangePercent.toFixed(2)}%)</strong>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">총 발행주식</span>
+            <strong class="summary-value">${stock.totalShares.toLocaleString()}주</strong>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">시가총액</span>
+            <strong class="summary-value">${formatStockCurrency(stock, getMarketCap(stock))}</strong>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">최우선 호가</span>
+            <strong class="summary-value">${formatStockCurrency(stock, snapshot.bestBid)} / ${formatStockCurrency(stock, snapshot.bestAsk)}</strong>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">스프레드 / 체결량</span>
+            <strong class="summary-value">${spreadText} / ${(snapshot.lastVolume || 0).toLocaleString()}주</strong>
+        </div>
+    `;
+}
 
-    // 배경
-    ctx.fillStyle = '#f8f9fa';
-    ctx.fillRect(padding, padding, width, height);
-
-    // 격자선
-    ctx.strokeStyle = '#e0e0e0';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 5; i++) {
-        const y = padding + (height / 5) * i;
-        ctx.beginPath();
-        ctx.moveTo(padding, y);
-        ctx.lineTo(padding + width, y);
-        ctx.stroke();
-
-        // Y축 레이블
-        const price = maxPrice - (priceRange / 5) * i;
-        ctx.fillStyle = '#666';
-        ctx.font = '12px sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(`${currencySymbol}${formatPrice(price)}`, padding - 10, y + 4);
+function drawChartToCanvas(stock, canvasId, compact = false) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !stock) {
+        return;
     }
 
-    // 라인 차트 그리기
-    ctx.strokeStyle = '#667eea';
-    ctx.lineWidth = 2;
+    const ctx = canvas.getContext('2d');
+    const palette = getChartPalette();
+    const priceHistory = Array.isArray(stock.priceHistory) ? stock.priceHistory : [];
+    const parentWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 760;
+    canvas.width = Math.max(320, parentWidth - (compact ? 0 : 8));
+    canvas.height = compact ? 280 : 420;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = palette.surface;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (priceHistory.length < 2) {
+        ctx.fillStyle = palette.axis;
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('가격 이력이 충분하지 않습니다.', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    const padding = compact ? 36 : 48;
+    const graphWidth = canvas.width - padding * 2;
+    const graphHeight = canvas.height - padding * 2;
+    const prices = priceHistory.map(point => point.price);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const range = maxPrice - minPrice || 1;
+    const latestPoint = priceHistory[priceHistory.length - 1];
+    const isUp = latestPoint.price >= priceHistory[0].price;
+
+    ctx.fillStyle = palette.frame;
+    ctx.fillRect(padding, padding, graphWidth, graphHeight);
+    ctx.strokeStyle = palette.border;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(padding, padding, graphWidth, graphHeight);
+
+    ctx.strokeStyle = palette.grid;
+    for (let index = 0; index <= 5; index++) {
+        const y = padding + (graphHeight / 5) * index;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + graphWidth, y);
+        ctx.stroke();
+    }
+
     ctx.beginPath();
-
-    stock.priceHistory.forEach((point, index) => {
-        const x = padding + (width / (stock.priceHistory.length - 1)) * index;
-        const y = padding + height - ((point.price - minPrice) / priceRange) * height;
-
+    priceHistory.forEach((point, index) => {
+        const x = padding + (graphWidth / (priceHistory.length - 1)) * index;
+        const y = padding + graphHeight - ((point.price - minPrice) / range) * graphHeight;
         if (index === 0) {
             ctx.moveTo(x, y);
         } else {
             ctx.lineTo(x, y);
         }
     });
+    ctx.strokeStyle = isUp ? palette.priceUp : palette.priceDown;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // 데이터 포인트 그리기
-    ctx.fillStyle = '#667eea';
-    stock.priceHistory.forEach((point, index) => {
-        const x = padding + (width / (stock.priceHistory.length - 1)) * index;
-        const y = padding + height - ((point.price - minPrice) / priceRange) * height;
+    ctx.fillStyle = palette.point;
+    priceHistory.forEach((point, index) => {
+        const x = padding + (graphWidth / (priceHistory.length - 1)) * index;
+        const y = padding + graphHeight - ((point.price - minPrice) / range) * graphHeight;
         ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.arc(x, y, compact ? 2 : 3, 0, Math.PI * 2);
         ctx.fill();
     });
 
-    // 현재가 표시
-    ctx.fillStyle = '#28a745';
-    ctx.font = 'bold 16px sans-serif';
+    ctx.fillStyle = palette.text;
+    ctx.font = compact ? '600 13px sans-serif' : '700 16px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`현재가: ${currencySymbol}${formatPrice(stock.price)}`, padding, padding - 20);
+    ctx.fillText(`현재가 ${formatStockCurrency(stock, stock.price)}`, padding, padding - 14);
 
-    // X축 레이블
-    ctx.fillStyle = '#666';
+    ctx.fillStyle = palette.axis;
     ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    const startTime = stock.priceHistory[0].time;
-    const endTime = stock.priceHistory[stock.priceHistory.length - 1].time;
-    const timeRange = endTime - startTime;
-
-    for (let i = 0; i <= 4; i++) {
-        const x = padding + (width / 4) * i;
-        const time = new Date(startTime + (timeRange / 4) * i);
-        const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
-        ctx.fillText(timeStr, x, canvas.height - padding + 20);
+    ctx.textAlign = 'right';
+    for (let index = 0; index <= 4; index++) {
+        const y = padding + (graphHeight / 4) * index;
+        const price = maxPrice - (range / 4) * index;
+        ctx.fillText(formatStockCurrency(stock, price), padding - 10, y + 4);
     }
 
-    // 축
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(padding, padding);
-    ctx.lineTo(padding, padding + height);
-    ctx.lineTo(padding + width, padding + height);
-    ctx.stroke();
+    ctx.textAlign = 'center';
+    const startTime = priceHistory[0].time;
+    const endTime = priceHistory[priceHistory.length - 1].time;
+    const timeRange = endTime - startTime || 1;
+    for (let index = 0; index <= 4; index++) {
+        const time = new Date(startTime + (timeRange / 4) * index);
+        const label = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
+        const x = padding + (graphWidth / 4) * index;
+        ctx.fillText(label, x, canvas.height - 12);
+    }
+}
+
+export function showChart(stockId) {
+    const stock = findStock(stockId);
+    if (!stock) {
+        return;
+    }
+
+    expandedChartStockId = stock.id;
+    const modal = document.getElementById('chart-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+
+    const titleElement = document.getElementById('chart-stock-name');
+    if (titleElement) {
+        titleElement.textContent = `${stock.name} 상세 차트`;
+    }
+
+    renderModalDetails(stock);
+    drawChartToCanvas(stock, 'expanded-price-chart', false);
+}
+
+export function closeChart() {
+    const modal = document.getElementById('chart-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+
+    expandedChartStockId = null;
+    const detailsContainer = document.getElementById('chart-stock-details');
+    if (detailsContainer) {
+        detailsContainer.innerHTML = '';
+    }
+}
+
+export function updateChartIfOpen(stockId = null) {
+    if (stockId !== null) {
+        const selectedStock = findStock(stockId);
+        if (selectedStock) {
+            drawChartToCanvas(selectedStock, 'price-chart', true);
+        }
+    }
+
+    if (expandedChartStockId !== null) {
+        const expandedStock = findStock(expandedChartStockId);
+        if (expandedStock) {
+            renderModalDetails(expandedStock);
+            drawChartToCanvas(expandedStock, 'expanded-price-chart', false);
+        }
+    }
 }

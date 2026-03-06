@@ -1,6 +1,16 @@
-import { markets, setStockIdCounter } from './stock.js';
+import { markets, setStockIdCounter, ensureStockMetadata } from './stock.js';
 
 const EXCHANGE_FEE = 0.01; // 1% 환전 수수료
+
+function createMarketSessionStats() {
+    return {
+        sessionStartValue: 0,
+        currentChange: 0,
+        currentChangePct: 0,
+        lastChange: 0,
+        lastChangePct: 0
+    };
+}
 
 // 게임 상태 관리
 export const gameState = {
@@ -19,8 +29,24 @@ export const gameState = {
         korea: { isOpen: false },
         usa: { isOpen: false }
     },
+    marketSessionStats: {
+        korea: createMarketSessionStats(),
+        usa: createMarketSessionStats()
+    },
     gameOver: false
 };
+
+function getRequiredTotalShares(stockId) {
+    const directHoldingQuantity = gameState.holdings[stockId]?.quantity || 0;
+    const leveragedQuantity = gameState.leveragedPositions.reduce((total, position) => {
+        return total + (position.stockId === stockId ? position.quantity : 0);
+    }, 0);
+    const shortQuantity = gameState.shortPositions.reduce((total, position) => {
+        return total + (position.stockId === stockId ? position.quantity : 0);
+    }, 0);
+
+    return Math.max(directHoldingQuantity + leveragedQuantity, shortQuantity);
+}
 
 // 게임 상태 초기화
 export function resetGameState() {
@@ -35,6 +61,10 @@ export function resetGameState() {
     gameState.marketStatus = {
         korea: { isOpen: false },
         usa: { isOpen: false }
+    };
+    gameState.marketSessionStats = {
+        korea: createMarketSessionStats(),
+        usa: createMarketSessionStats()
     };
     gameState.gameOver = false;
 }
@@ -235,6 +265,10 @@ export function loadGameState() {
             }
 
             Object.assign(gameState, loadedData.gameState);
+            gameState.marketSessionStats = {
+                korea: { ...createMarketSessionStats(), ...(loadedData.gameState.marketSessionStats?.korea || {}) },
+                usa: { ...createMarketSessionStats(), ...(loadedData.gameState.marketSessionStats?.usa || {}) }
+            };
 
             if (loadedData.markets) {
                 Object.keys(markets).forEach(marketId => {
@@ -248,6 +282,12 @@ export function loadGameState() {
                 markets.korea.push(...loadedData.stocks);
                 markets.usa.length = 0;
             }
+
+            Object.keys(markets).forEach(marketId => {
+                markets[marketId].forEach(stock => {
+                    ensureStockMetadata(stock, getRequiredTotalShares(stock.id));
+                });
+            });
 
             // stockIdCounter 복원 (가장 큰 ID + 1로 설정)
             let maxId = -1;

@@ -3,188 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 시뮬레이션 게임</title>
+    <title>주식 시뮬레이터 게임</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <button class="dark-mode-toggle" id="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+    <button class="dark-mode-toggle" id="dark-mode-toggle" onclick="toggleDarkMode()">☾</button>
 
     <div class="font-size-controls">
-        <button class="font-size-btn" id="font-size-btn" onclick="cycleFontSize()" title="폰트 크기 변경">A</button>
+        <button class="font-size-btn" id="font-size-btn" onclick="cycleFontSize()" title="글자 크기 변경">A</button>
     </div>
 
     <div class="reset-controls">
-        <button class="reset-btn" id="reset-btn" onclick="resetLife()" title="인생 리셋">🔄 인생 리셋</button>
+        <button class="reset-btn" id="reset-btn" onclick="resetLife()" title="인생 리셋">인생 리셋</button>
     </div>
 
-    <div class="container">
-        <h1>📈 주식 시뮬레이션 게임</h1>
+    <div class="container trading-app">
+        <header class="app-header">
+            <div class="brand-block">
+                <p class="brand-kicker">SIMULATED TRADING TERMINAL</p>
+                <h1>주식 시뮬레이터</h1>
+                <p class="brand-copy">실제 WTS처럼 감시종목, 시세, 호가, 주문, 잔고를 한 화면에서 보도록 재구성한 거래 화면입니다.</p>
+            </div>
 
-        <div class="header-info">
-            <div class="info-box">
-                <h3>현재 시간</h3>
-                <p id="current-time">--:--:--</p>
+            <div class="header-info">
+                <div class="info-box time-box">
+                    <h3>현재 시간</h3>
+                    <p id="current-time">--:--:--</p>
+                </div>
+                <div class="info-box">
+                    <h3>국내장</h3>
+                    <p id="market-status-korea" class="market-closed">폐장 중</p>
+                    <p id="market-change-korea" class="market-session-change">직전 5분 변동: ₩0 (0.00%)</p>
+                </div>
+                <div class="info-box">
+                    <h3>미국장</h3>
+                    <p id="market-status-usa" class="market-closed">폐장 중</p>
+                    <p id="market-change-usa" class="market-session-change">직전 5분 변동: $0.00 (0.00%)</p>
+                </div>
             </div>
-            <div class="info-box">
-                <h3>🇰🇷 국내장</h3>
-                <p id="market-status-korea" class="market-closed">휴장 중</p>
-            </div>
-            <div class="info-box">
-                <h3>🇺🇸 미국장</h3>
-                <p id="market-status-usa" class="market-closed">휴장 중</p>
-            </div>
-        </div>
+        </header>
 
-        <div class="content-grid">
-            <div class="stocks-section">
-                <div class="market-tabs">
-                    <button id="tab-korea" class="tab-button active" onclick="window.switchTab('korea')">🇰🇷 국내 주식</button>
-                    <button id="tab-usa" class="tab-button" onclick="window.switchTab('usa')">🇺🇸 미국 주식</button>
+        <main class="terminal-grid">
+            <aside class="panel-card watchlist-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="panel-kicker">WATCHLIST</p>
+                        <h2>감시종목</h2>
+                    </div>
+                    <span class="panel-hint">선택한 종목 중심</span>
                 </div>
 
-                <div class="leverage-controls">
-                    <div class="leverage-toggle-container">
-                        <label class="toggle-label">
-                            <input type="checkbox" id="leverage-toggle">
-                            <span class="toggle-text">📊 레버리지 모드</span>
-                        </label>
-                    </div>
-                    <div class="leverage-ratio-container" id="leverage-ratio-container" style="display: none;">
-                        <div class="leverage-direction-container">
-                            <label class="ratio-label">
-                                <input type="radio" name="leverage-direction" value="long" checked>
-                                <span>📈 롱</span>
-                            </label>
-                            <label class="ratio-label">
-                                <input type="radio" name="leverage-direction" value="short">
-                                <span>📉 숏</span>
-                            </label>
-                        </div>
-                        <div class="leverage-multiplier-container">
-                            <label class="ratio-label">
-                                <input type="radio" name="leverage-ratio" value="2" checked>
-                                <span>2x</span>
-                            </label>
-                            <label class="ratio-label">
-                                <input type="radio" name="leverage-ratio" value="3">
-                                <span>3x</span>
-                            </label>
-                            <label class="ratio-label">
-                                <input type="radio" name="leverage-ratio" value="4">
-                                <span>4x</span>
-                            </label>
-                        </div>
-                    </div>
+                <div class="market-tabs">
+                    <button id="tab-korea" class="tab-button active" onclick="window.switchTab('korea')">국내 주식</button>
+                    <button id="tab-usa" class="tab-button" onclick="window.switchTab('usa')">미국 주식</button>
                 </div>
 
                 <div id="korea-market" class="tab-panel active">
-                    <div id="stock-list-korea" class="stock-list">
-                        <!-- 국내 주식 목록 -->
-                    </div>
+                    <div id="stock-list-korea" class="stock-list watchlist-table"></div>
                 </div>
                 <div id="usa-market" class="tab-panel">
-                    <div id="stock-list-usa" class="stock-list">
-                        <!-- 미국 주식 목록 -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="player-section">
-                <h2 class="section-title">💰 내 정보</h2>
-
-                <div class="player-info-grid">
-                    <div class="player-info">
-                        <h4>💵 보유 원화</h4>
-                        <p id="player-cash-krw">₩0</p>
-                    </div>
-                    <div class="player-info">
-                        <h4>💵 보유 달러</h4>
-                        <p id="player-cash-usd">$0</p>
-                    </div>
+                    <div id="stock-list-usa" class="stock-list watchlist-table"></div>
                 </div>
 
-                <div class="player-info">
-                    <h4>📈 총 자산 (원화 기준)</h4>
-                    <p id="player-total">₩0</p>
-                </div>
-
-                <div class="exchange-section">
-                    <h4>💱 환전소</h4>
-                    <div class="exchange-rate-display">
-                        <p class="exchange-rate" id="exchange-rate">1 USD = 1300 KRW</p>
-                        <span class="rate-change" id="rate-change"></span>
-                    </div>
-                    <div class="exchange-controls">
-                        <div class="exchange-input-container">
-                            <label for="exchange-amount-input">환전 금액 (USD):</label>
-                            <input type="number" id="exchange-amount-input" min="1" value="100" step="1">
+                <section class="sub-panel leaderboard-panel">
+                    <div class="panel-heading compact">
+                        <div>
+                            <p class="panel-kicker">SIMULATION</p>
+                            <h3>가상 트레이더 랭킹</h3>
                         </div>
-                        <div class="exchange-buttons">
-                            <button class="exchange-btn" onclick="window.exchangeHandler('krw_to_usd')">원화→달러</button>
-                            <button class="exchange-btn" onclick="window.exchangeHandler('usd_to_krw')">달러→원화</button>
+                        <span class="panel-hint">100명 기준</span>
+                    </div>
+                    <div id="trader-leaderboard" class="leaderboard-list">
+                        <p class="empty-state compact">트레이더 데이터를 불러오는 중입니다</p>
+                    </div>
+                </section>
+            </aside>
+
+            <section class="quote-column">
+                <section class="panel-card quote-hero">
+                    <div class="quote-hero-header">
+                        <div>
+                            <span id="selected-stock-market" class="market-badge korea">국내</span>
+                            <h2 id="selected-stock-name">종목 선택</h2>
+                            <p id="selected-stock-code" class="quote-subtitle">왼쪽 감시종목에서 종목을 선택하세요.</p>
+                        </div>
+                        <button class="secondary-btn" onclick="window.openSelectedChart()">차트 확대</button>
+                    </div>
+
+                    <div class="quote-price-block">
+                        <div id="selected-stock-price" class="quote-price-value">--</div>
+                        <div id="selected-stock-change" class="quote-price-change neutral">가격 정보 없음</div>
+                    </div>
+
+                    <div id="selected-stock-summary" class="quote-summary-grid"></div>
+                </section>
+
+                <section class="panel-card chart-panel">
+                    <div class="panel-heading compact">
+                        <div>
+                            <p class="panel-kicker">CHART</p>
+                            <h3>실시간 가격 흐름</h3>
+                        </div>
+                        <span class="panel-hint">최근 체결가 기준</span>
+                    </div>
+                    <canvas id="price-chart"></canvas>
+                </section>
+            </section>
+
+            <aside class="execution-column">
+                <section class="panel-card orderbook-panel">
+                    <div class="panel-heading compact">
+                        <div>
+                            <p class="panel-kicker">ORDER BOOK</p>
+                            <h3>호가 / 체결</h3>
+                        </div>
+                        <span id="selected-orderbook-summary" class="panel-hint">호가 정보 없음</span>
+                    </div>
+
+                    <div class="orderbook-grid">
+                        <div class="orderbook-side ask">
+                            <div class="orderbook-title">매도 호가</div>
+                            <div id="selected-orderbook-sell" class="orderbook-list"></div>
+                        </div>
+                        <div class="orderbook-side bid">
+                            <div class="orderbook-title">매수 호가</div>
+                            <div id="selected-orderbook-buy" class="orderbook-list"></div>
                         </div>
                     </div>
-                </div>
 
-                <div class="holdings-list">
-                    <h4>📦 보유 주식</h4>
-                    <div id="holdings-container">
-                        <p class="empty-holdings">보유 중인 주식이 없습니다</p>
+                    <div class="trade-tape-panel">
+                        <div class="orderbook-title">최근 체결</div>
+                        <div id="selected-recent-trades" class="trade-tape"></div>
                     </div>
-                </div>
+                </section>
 
-                <div class="holdings-list">
-                    <h4>📊 레버리지 포지션</h4>
-                    <div id="leverage-positions-container">
-                        <p class="empty-holdings">레버리지 포지션이 없습니다</p>
+                <section class="panel-card order-entry-panel">
+                    <div class="panel-heading compact">
+                        <div>
+                            <p class="panel-kicker">ORDER ENTRY</p>
+                            <h3>주문 티켓</h3>
+                        </div>
+                        <span class="panel-hint">현재 플레이어 주문은 시장가 기준입니다</span>
                     </div>
-                </div>
 
-                <div class="holdings-list">
-                    <h4>📉 숏 포지션</h4>
-                    <div id="short-positions-container">
-                        <p class="empty-holdings">숏 포지션이 없습니다</p>
+                    <label class="field">
+                        <span>주문 수량</span>
+                        <input type="number" id="selected-order-quantity" min="1" value="1" step="1">
+                    </label>
+
+                    <div class="quick-actions">
+                        <button class="ghost-btn" onclick="window.setOrderQuantity(1)">1주</button>
+                        <button class="ghost-btn" onclick="window.setOrderQuantity(10)">10주</button>
+                        <button class="ghost-btn" onclick="window.setOrderQuantity(100)">100주</button>
+                        <button class="ghost-btn" onclick="window.setOrderToMax()">최대</button>
                     </div>
-                </div>
-            </div>
-        </div>
+
+                    <div id="selected-order-estimate" class="order-estimate">종목을 선택하면 예상 체결 금액을 보여줍니다.</div>
+                    <div id="selected-order-availability" class="order-availability">주문 가능 정보 없음</div>
+
+                    <div class="order-button-row">
+                        <button id="order-buy-btn" class="primary-buy" onclick="window.submitSelectedOrder('buy')">현물 매수</button>
+                        <button id="order-sell-btn" class="primary-sell" onclick="window.submitSelectedOrder('sell')">현물 매도</button>
+                    </div>
+
+                    <div class="leverage-controls">
+                        <div class="leverage-toggle-container">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="leverage-toggle">
+                                <span class="toggle-text">레버리지 / 숏 주문 사용</span>
+                            </label>
+                        </div>
+
+                        <div class="leverage-ratio-container" id="leverage-ratio-container">
+                            <div class="leverage-direction-container">
+                                <label class="ratio-label">
+                                    <input type="radio" name="leverage-direction" value="long" checked>
+                                    <span>롱</span>
+                                </label>
+                                <label class="ratio-label">
+                                    <input type="radio" name="leverage-direction" value="short">
+                                    <span>숏</span>
+                                </label>
+                            </div>
+                            <div class="leverage-multiplier-container">
+                                <label class="ratio-label">
+                                    <input type="radio" name="leverage-ratio" value="2" checked>
+                                    <span>2x</span>
+                                </label>
+                                <label class="ratio-label">
+                                    <input type="radio" name="leverage-ratio" value="3">
+                                    <span>3x</span>
+                                </label>
+                                <label class="ratio-label">
+                                    <input type="radio" name="leverage-ratio" value="4">
+                                    <span>4x</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button id="selected-leverage-action" class="accent-btn" onclick="window.submitSelectedLeverageOrder()" disabled>2x 롱 1주 진입</button>
+                    </div>
+                </section>
+
+                <section class="panel-card account-panel">
+                    <div class="panel-heading compact">
+                        <div>
+                            <p class="panel-kicker">ACCOUNT</p>
+                            <h3>예수금 / 잔고 / 포지션</h3>
+                        </div>
+                        <span class="panel-hint">원화 평가 기준</span>
+                    </div>
+
+                    <div class="asset-grid">
+                        <div class="asset-card">
+                            <span class="asset-label">원화 예수금</span>
+                            <strong id="player-cash-krw">₩0</strong>
+                        </div>
+                        <div class="asset-card">
+                            <span class="asset-label">달러 예수금</span>
+                            <strong id="player-cash-usd">$0.00</strong>
+                        </div>
+                        <div class="asset-card emphasis">
+                            <span class="asset-label">총 자산</span>
+                            <strong id="player-total">₩0</strong>
+                        </div>
+                    </div>
+
+                    <div class="exchange-section">
+                        <div class="exchange-rate-display">
+                            <p class="exchange-rate" id="exchange-rate">1 USD = 1300 KRW</p>
+                            <span class="rate-change" id="rate-change">보합</span>
+                        </div>
+                        <div class="exchange-controls">
+                            <label class="field">
+                                <span>환전 금액 (USD)</span>
+                                <input type="number" id="exchange-amount-input" min="1" value="100" step="1">
+                            </label>
+                            <div class="exchange-buttons">
+                                <button class="ghost-btn" onclick="window.exchangeHandler('krw_to_usd')">원화 → 달러</button>
+                                <button class="ghost-btn" onclick="window.exchangeHandler('usd_to_krw')">달러 → 원화</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <section class="positions-block">
+                        <div class="positions-title">현물 잔고</div>
+                        <div id="holdings-container"></div>
+                    </section>
+
+                    <section class="positions-block">
+                        <div class="positions-title">레버리지 포지션</div>
+                        <div id="leverage-positions-container"></div>
+                    </section>
+
+                    <section class="positions-block">
+                        <div class="positions-title">숏 포지션</div>
+                        <div id="short-positions-container"></div>
+                    </section>
+                </section>
+            </aside>
+        </main>
     </div>
 
     <div id="game-over" class="game-over hidden">
         <div class="game-over-content">
-            <h2>💸 파산!</h2>
+            <h2>파산!</h2>
             <p id="game-over-message">자산이 0 이하가 되었습니다.</p>
-            <button class="restart-btn" onclick="restartGame()">🔄 다시 시작</button>
+            <button class="restart-btn" onclick="restartGame()">다시 시작</button>
         </div>
     </div>
 
     <div id="chart-modal" class="chart-modal hidden" onclick="closeChart()">
         <div class="chart-content" onclick="event.stopPropagation()">
             <div class="chart-header">
-                <h2 class="chart-title" id="chart-stock-name">차트</h2>
-                <button class="chart-close" onclick="closeChart()">✕ 닫기</button>
+                <h2 class="chart-title" id="chart-stock-name">상세 차트</h2>
+                <button class="chart-close" onclick="closeChart()">닫기</button>
             </div>
-            <canvas id="price-chart"></canvas>
+            <div id="chart-stock-details" class="chart-stock-details"></div>
+            <canvas id="expanded-price-chart"></canvas>
         </div>
     </div>
 
     <script type="module" src="js/main.js"></script>
-    <script>
-        // 레버리지 토글 이벤트 리스너
-        document.addEventListener('DOMContentLoaded', function() {
-            const leverageToggle = document.getElementById('leverage-toggle');
-            const leverageRatioContainer = document.getElementById('leverage-ratio-container');
-
-            if (leverageToggle) {
-                leverageToggle.addEventListener('change', function() {
-                    if (this.checked) {
-                        leverageRatioContainer.style.display = 'flex';
-                    } else {
-                        leverageRatioContainer.style.display = 'none';
-                    }
-                });
-            }
-        });
-    </script>
 </body>
 </html>
